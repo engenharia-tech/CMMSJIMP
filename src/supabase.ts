@@ -1,17 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const rawUrl = import.meta.env.VITE_SUPABASE_URL || (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_URL : '') || '';
+const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_ANON_KEY : '') || '';
 
 // Sanitize inputs: trim whitespace and remove trailing slashes
 const supabaseUrl = rawUrl.trim().replace(/\/$/, '');
 const supabaseAnonKey = rawKey.trim();
 
+console.log('Supabase URL configured:', !!supabaseUrl);
+console.log('Supabase Key configured:', !!supabaseAnonKey);
+
 export const isSupabaseConfigured = !!(
   supabaseUrl && 
   supabaseAnonKey && 
-  supabaseUrl.startsWith('https://') && 
-  supabaseUrl.includes('.supabase.co')
+  supabaseUrl.startsWith('https://')
 );
 
 // Use placeholders to prevent crash during initialization if env vars are missing
