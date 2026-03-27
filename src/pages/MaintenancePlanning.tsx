@@ -103,32 +103,32 @@ export default function MaintenancePlanningPage() {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">{t('maintenance_planning')}</h2>
-            <p className="text-slate-500 mt-1">{t('manage_maintenance_types', 'Manage preventive, predictive and corrective actions.')}</p>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('maintenance_planning')}</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('manage_maintenance_types', 'Manage preventive, predictive and corrective actions.')}</p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-slate-200">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
               <select 
                 value={reportMonth} 
                 onChange={(e) => setReportMonth(parseInt(e.target.value))}
-                className="bg-transparent text-sm font-bold text-slate-600 outline-none"
+                className="bg-transparent text-sm font-bold text-slate-600 dark:text-slate-400 outline-none"
               >
                 {Array.from({ length: 12 }).map((_, i) => (
-                  <option key={i} value={i}>{format(new Date(2024, i, 1), 'MMMM', { locale: ptBR })}</option>
+                  <option key={i} value={i} className="dark:bg-slate-900">{format(new Date(2024, i, 1), 'MMMM', { locale: ptBR })}</option>
                 ))}
               </select>
               <select 
                 value={reportYear} 
                 onChange={(e) => setReportYear(parseInt(e.target.value))}
-                className="bg-transparent text-sm font-bold text-slate-600 outline-none"
+                className="bg-transparent text-sm font-bold text-slate-600 dark:text-slate-400 outline-none"
               >
                 {[2024, 2025, 2026].map(y => (
-                  <option key={y} value={y}>{y}</option>
+                  <option key={y} value={y} className="dark:bg-slate-900">{y}</option>
                 ))}
               </select>
               <button 
                 onClick={handleExportReport}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
               >
                 <Download className="w-4 h-4" />
                 {t('export_report')}
@@ -138,7 +138,7 @@ export default function MaintenancePlanningPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 w-fit">
+        <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-slate-200 dark:border-slate-800 w-fit transition-colors">
           {(['preventive', 'predictive', 'corrective'] as ActionType[]).map((tab) => (
             <button
               key={tab}
@@ -146,8 +146,8 @@ export default function MaintenancePlanningPage() {
               className={cn(
                 "px-8 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all",
                 activeTab === tab 
-                  ? "bg-white text-blue-600 shadow-lg shadow-blue-900/5 scale-105" 
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-lg shadow-blue-900/5 scale-105" 
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
               )}
             >
               {t(`${tab}_type`)}
@@ -156,80 +156,80 @@ export default function MaintenancePlanningPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
                 <Calendar className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-slate-900">{t('next_7_days', 'Next 7 Days')}</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white">{t('next_7_days', 'Next 7 Days')}</h3>
             </div>
-            <p className="text-3xl font-black text-slate-900">
+            <p className="text-3xl font-black text-slate-900 dark:text-white">
               {upcomingMaintenance.filter(m => {
                 const diff = new Date(m.next_maintenance).getTime() - new Date().getTime();
                 return diff > 0 && diff < 7 * 24 * 60 * 60 * 1000;
               }).length}
             </p>
           </div>
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600">
+              <div className="w-10 h-10 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center text-red-600 dark:text-red-400">
                 <AlertTriangle className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-slate-900">{t('overdue', 'Overdue')}</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white">{t('overdue', 'Overdue')}</h3>
             </div>
-            <p className="text-3xl font-black text-red-600">
+            <p className="text-3xl font-black text-red-600 dark:text-red-400">
               {upcomingMaintenance.filter(m => m.is_overdue).length}
             </p>
           </div>
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+              <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400">
                 <CheckCircle className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-slate-900">{t('completed_month', 'Completed (Month)')}</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white">{t('completed_month', 'Completed (Month)')}</h3>
             </div>
-            <p className="text-3xl font-black text-slate-900">
+            <p className="text-3xl font-black text-slate-900 dark:text-white">
               {orders.filter(o => o.status === 'completed' && o.action_type === activeTab && new Date(o.request_date).getMonth() === new Date().getMonth()).length}
             </p>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t('equipment')}</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t('last_maintenance')}</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t('next_maintenance')}</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{t('status')}</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">{t('actions')}</th>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('equipment')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('last_maintenance')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('next_maintenance')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('status')}</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {upcomingMaintenance.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-bold text-slate-900">{item.equipment_name}</span>
-                      <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">{item.registration_number}</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{item.equipment_name}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">{item.registration_number}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-600">
+                  <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                     {item.last_maintenance}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`text-sm font-bold ${item.is_overdue ? 'text-red-600' : 'text-slate-700'}`}>
+                    <span className={`text-sm font-bold ${item.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
                       {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: ptBR })}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       {item.is_overdue ? (
-                        <span className="px-3 py-1 bg-red-50 text-red-600 border border-red-100 rounded-full text-[10px] font-black uppercase tracking-widest">
+                        <span className="px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
                           {t('overdue', 'Atrasada')}
                         </span>
                       ) : (
-                        <span className="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-full text-[10px] font-black uppercase tracking-widest">
+                        <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
                           {t('scheduled', 'Agendada')}
                         </span>
                       )}
@@ -238,7 +238,7 @@ export default function MaintenancePlanningPage() {
                   <td className="px-6 py-4 text-right">
                     <button 
                       onClick={() => handleCreateAction(item)}
-                      className="flex items-center gap-2 ml-auto px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
+                      className="flex items-center gap-2 ml-auto px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                       {t('create_action')}
@@ -249,6 +249,7 @@ export default function MaintenancePlanningPage() {
             </tbody>
           </table>
         </div>
+
 
         {selectedEquipment && (
           <AddOrderModal 

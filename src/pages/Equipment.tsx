@@ -11,15 +11,15 @@ import { EditEquipmentModal } from '@/components/modals/EditEquipmentModal';
 import { AddOrderModal } from '@/components/modals/AddOrderModal';
 
 const criticalityColors = {
-  low: 'bg-blue-50 text-blue-600 border-blue-100',
-  medium: 'bg-yellow-50 text-yellow-600 border-yellow-100',
-  high: 'bg-orange-50 text-orange-600 border-orange-100',
-  critical: 'bg-red-50 text-red-600 border-red-100',
+  low: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30',
+  medium: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border-yellow-100 dark:border-yellow-900/30',
+  high: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-900/30',
+  critical: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30',
 };
 
 const statusIcons = {
   active: <CheckCircle className="w-4 h-4 text-green-500" />,
-  inactive: <AlertTriangle className="w-4 h-4 text-slate-400" />,
+  inactive: <AlertTriangle className="w-4 h-4 text-slate-400 dark:text-slate-500" />,
   maintenance: <Clock className="w-4 h-4 text-yellow-500" />,
 };
 
@@ -54,16 +54,16 @@ export default function EquipmentPage() {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">{t('equipment')}</h2>
-            <p className="text-slate-500 mt-1">{t('manage_assets', 'Manage and track your industrial assets.')}</p>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('equipment')}</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('manage_assets', 'Manage and track your industrial assets.')}</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
               <button 
                 onClick={() => setView('grid')}
                 className={cn(
                   "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                  view === 'grid' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  view === 'grid' ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                 )}
               >
                 {t('grid', 'Grid')}
@@ -72,7 +72,7 @@ export default function EquipmentPage() {
                 onClick={() => setView('reports')}
                 className={cn(
                   "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                  view === 'reports' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  view === 'reports' ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                 )}
               >
                 {t('equipment_reports')}
@@ -91,13 +91,13 @@ export default function EquipmentPage() {
         {view === 'grid' ? (
           <>
             {/* Filters and Search */}
-            <div className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input 
                   type="text" 
                   placeholder={t('search_placeholder')}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-colors"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -105,7 +105,7 @@ export default function EquipmentPage() {
                 <select 
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
-                  className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-slate-600"
+                  className="px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-slate-600 dark:text-slate-400 transition-colors"
                 >
                   <option value="all">{t('all_types', 'All Types')}</option>
                   <option value="Equipamento">{t('equipment_type')}</option>
@@ -120,26 +120,26 @@ export default function EquipmentPage() {
             {/* Equipment Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredEquipment.map((item) => (
-                <div key={item.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow group">
+                <div key={item.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-all group">
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                        <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           <Wrench className="w-6 h-6" />
                         </div>
                         <div>
-                          <h3 className="font-bold text-slate-900 leading-tight">{item.equipment_name}</h3>
-                          <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-0.5">{item.registration_number}</p>
+                          <h3 className="font-bold text-slate-900 dark:text-white leading-tight">{item.equipment_name}</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-0.5">{item.registration_number}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
                         <button 
                           onClick={() => setEditingEquipment(item)}
-                          className="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-slate-400 transition-colors"
+                          className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg text-slate-400 transition-colors"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400">
+                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 transition-colors">
                           <MoreVertical className="w-4 h-4" />
                         </button>
                       </div>
@@ -147,23 +147,23 @@ export default function EquipmentPage() {
 
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('sector')}</p>
-                        <p className="text-sm font-semibold text-slate-700">{item.sector}</p>
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('sector')}</p>
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{item.sector}</p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('type')}</p>
-                        <p className="text-sm font-semibold text-slate-700">{item.type}</p>
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('type')}</p>
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{item.type}</p>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('status')}</p>
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('status')}</p>
                         <div className="flex items-center gap-1.5">
                           {statusIcons[item.status]}
-                          <span className="text-sm font-semibold text-slate-700 capitalize">{t(item.status)}</span>
+                          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 capitalize">{t(item.status)}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800 transition-colors">
                       <div className={cn(
                         "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
                         criticalityColors[item.criticality]
@@ -176,13 +176,19 @@ export default function EquipmentPage() {
                             setSelectedEquipmentForOrder(item);
                             setShowAddOrderModal(true);
                           }}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
                         >
                           <Plus className="w-3 h-3" />
                           {t('create_action')}
                         </button>
-                        <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100 cursor-pointer hover:bg-white transition-colors">
-                          <QRCodeSVG value={`cmms-jimp://equipment/${item.id}`} size={24} />
+                        <div className="p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-colors">
+                          <QRCodeSVG 
+                            value={`cmms-jimp://equipment/${item.id}`} 
+                            size={24} 
+                            bgColor="transparent"
+                            fgColor="currentColor"
+                            className="text-slate-900 dark:text-white"
+                          />
                         </div>
                       </div>
                     </div>
@@ -192,31 +198,31 @@ export default function EquipmentPage() {
             </div>
           </>
         ) : (
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-bottom border-slate-200">
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">{t('registration_number')}</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">{t('equipment_name')}</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">{t('type')}</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">{t('sector')}</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">{t('status')}</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">{t('criticality')}</th>
-                    <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right">{t('actions')}</th>
+                  <tr className="bg-slate-50 dark:bg-slate-800/50 border-bottom border-slate-200 dark:border-slate-800">
+                    <th className="px-6 py-4 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('registration_number')}</th>
+                    <th className="px-6 py-4 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('equipment_name')}</th>
+                    <th className="px-6 py-4 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('type')}</th>
+                    <th className="px-6 py-4 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('sector')}</th>
+                    <th className="px-6 py-4 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('status')}</th>
+                    <th className="px-6 py-4 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('criticality')}</th>
+                    <th className="px-6 py-4 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">{t('actions')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredEquipment.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-sm font-bold text-slate-600">{item.registration_number}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-slate-900">{item.equipment_name}</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-600">{item.type}</td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-600">{item.sector}</td>
+                    <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="px-6 py-4 text-sm font-bold text-slate-600 dark:text-slate-400">{item.registration_number}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">{item.equipment_name}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-600 dark:text-slate-400">{item.type}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-600 dark:text-slate-400">{item.sector}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5">
                           {statusIcons[item.status]}
-                          <span className="text-xs font-bold text-slate-700 capitalize">{t(item.status)}</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{t(item.status)}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -233,7 +239,7 @@ export default function EquipmentPage() {
                             setSelectedEquipmentForOrder(item);
                             setShowAddOrderModal(true);
                           }}
-                          className="flex items-center gap-2 ml-auto px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                          className="flex items-center gap-2 ml-auto px-3 py-1.5 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
                         >
                           <Plus className="w-3 h-3" />
                           {t('create_action')}
@@ -248,14 +254,15 @@ export default function EquipmentPage() {
         )}
 
         {equipment.length === 0 && !loading && (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-              <Wrench className="w-8 h-8 text-slate-300" />
+          <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 transition-colors">
+            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+              <Wrench className="w-8 h-8 text-slate-300 dark:text-slate-600" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900">{t('no_equipment_found')}</h3>
-            <p className="text-slate-500 mt-1">{t('start_adding_equipment')}</p>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('no_equipment_found')}</h3>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('start_adding_equipment')}</p>
           </div>
         )}
+
 
         <AddEquipmentModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
         <EditEquipmentModal 

@@ -134,7 +134,7 @@ export default function Users() {
   return (
     <div className="space-y-8">
       {!profiles.length && !loading && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3 text-amber-700">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-2xl flex items-center gap-3 text-amber-700 dark:text-amber-400 transition-colors">
           <AlertCircle className="w-5 h-5" />
           <p className="text-sm font-bold">
             {t('admin_setup_warning', 'Atenção: Certifique-se de ter executado o script SQL no Supabase e configurado a variável SUPABASE_SERVICE_ROLE_KEY.')}
@@ -143,8 +143,8 @@ export default function Users() {
       )}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tighter">{t('user_management')}</h2>
-          <p className="text-slate-500 font-medium">{t('user_management_desc')}</p>
+          <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{t('user_management')}</h2>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">{t('user_management_desc')}</p>
         </div>
         <button
           onClick={() => setIsAdding(true)}
@@ -161,29 +161,29 @@ export default function Users() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-xl relative overflow-hidden"
+            className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl relative overflow-hidden transition-colors"
           >
             <div className="absolute top-0 left-0 w-2 h-full bg-blue-600" />
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 {editingProfile ? t('edit_user', 'Editar Usuário') : t('register_new_employee')}
               </h3>
-              <button onClick={() => { setIsAdding(false); setEditingProfile(null); }} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                <X className="w-6 h-6 text-slate-400" />
+              <button onClick={() => { setIsAdding(false); setEditingProfile(null); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                <X className="w-6 h-6 text-slate-400 dark:text-slate-500" />
               </button>
             </div>
 
             <form onSubmit={editingProfile ? handleUpdateUser : handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t('full_name')}</label>
+                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">{t('full_name')}</label>
                 <div className="relative">
-                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
                   <input
                     required
                     type="text"
                     value={formData.fullName}
                     onChange={e => setFormData({ ...formData, fullName: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                     placeholder="e.g. John Doe"
                   />
                 </div>
@@ -191,15 +191,15 @@ export default function Users() {
 
               {!editingProfile && (
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t('email_address')}</label>
+                  <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">{t('email_address')}</label>
                   <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
                     <input
                       required
                       type="email"
                       value={formData.email}
                       onChange={e => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       placeholder="john@company.com"
                     />
                   </div>
@@ -208,15 +208,15 @@ export default function Users() {
 
               {!editingProfile && (
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t('initial_password')}</label>
+                  <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">{t('initial_password')}</label>
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
                     <input
                       required
                       type="password"
                       value={formData.password}
                       onChange={e => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       placeholder={t('min_6_chars')}
                     />
                   </div>
@@ -224,17 +224,17 @@ export default function Users() {
               )}
 
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">{t('system_role')}</label>
+                <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">{t('system_role')}</label>
                 <div className="relative">
-                  <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
                   <select
                     value={formData.role}
                     onChange={e => setFormData({ ...formData, role: e.target.value as any })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all appearance-none"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all appearance-none text-slate-900 dark:text-white"
                   >
-                    <option value="operator">{t('operator')}</option>
-                    <option value="engineer">{t('engineer')}</option>
-                    <option value="admin">{t('admin')}</option>
+                    <option value="operator" className="dark:bg-slate-900">{t('operator')}</option>
+                    <option value="engineer" className="dark:bg-slate-900">{t('engineer')}</option>
+                    <option value="admin" className="dark:bg-slate-900">{t('admin')}</option>
                   </select>
                 </div>
               </div>
@@ -243,12 +243,12 @@ export default function Users() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-lg shadow-xl hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50"
+                  className="flex-1 bg-slate-900 dark:bg-slate-800 text-white py-4 rounded-2xl font-black text-lg shadow-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-50"
                 >
                   {loading ? t('saving') : (editingProfile ? t('update_user', 'Atualizar Usuário') : t('confirm_registration'))}
                 </button>
                 {!editingProfile && (
-                  <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-4 py-4 rounded-2xl border border-amber-100">
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-4 py-4 rounded-2xl border border-amber-100 dark:border-amber-900/30 transition-colors">
                     <AlertCircle className="w-5 h-5" />
                     <p className="text-xs font-bold leading-tight">{t('user_login_immediate')}</p>
                   </div>
@@ -259,36 +259,36 @@ export default function Users() {
         )}
       </AnimatePresence>
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-bottom border-slate-200">
-                <th className="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">{t('employee')}</th>
-                <th className="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">{t('system_role')}</th>
-                <th className="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest">{t('status')}</th>
-                <th className="px-8 py-6 text-xs font-black text-slate-400 uppercase tracking-widest text-right">{t('actions')}</th>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 border-bottom border-slate-200 dark:border-slate-800">
+                <th className="px-8 py-6 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('employee')}</th>
+                <th className="px-8 py-6 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('system_role')}</th>
+                <th className="px-8 py-6 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('status')}</th>
+                <th className="px-8 py-6 text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {profiles.map((profile) => (
-                <tr key={profile.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={profile.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center">
-                        <UserIcon className="w-6 h-6 text-slate-400" />
+                      <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center transition-colors">
+                        <UserIcon className="w-6 h-6 text-slate-400 dark:text-slate-500" />
                       </div>
                       <div>
-                        <p className="font-black text-slate-900 tracking-tight">{profile.full_name}</p>
-                        <p className="text-xs text-slate-500 font-medium">{profile.email || profile.id}</p>
+                        <p className="font-black text-slate-900 dark:text-white tracking-tight">{profile.full_name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{profile.email || profile.id}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-6">
                     <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                      profile.role === 'admin' ? 'bg-purple-50 text-purple-600 border-purple-100' :
-                      profile.role === 'engineer' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                      'bg-slate-50 text-slate-600 border-slate-100'
+                      profile.role === 'admin' ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900/30' :
+                      profile.role === 'engineer' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30' :
+                      'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-700'
                     }`}>
                       {t(profile.role)}
                     </span>
@@ -296,20 +296,20 @@ export default function Users() {
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-xs font-bold text-slate-600">{t('active')}</span>
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{t('active')}</span>
                     </div>
                   </td>
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => startEditing(profile)}
-                        className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        className="p-3 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all"
                       >
                         <Edit2 className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => handleDeleteUser(profile.id)}
-                        className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        className="p-3 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
@@ -321,8 +321,8 @@ export default function Users() {
                 <tr>
                   <td colSpan={4} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center justify-center">
-                      <UserIcon className="w-12 h-12 text-slate-200 mb-4" />
-                      <p className="text-slate-500 font-medium">{t('no_users_found', 'Nenhum usuário encontrado.')}</p>
+                      <UserIcon className="w-12 h-12 text-slate-200 dark:text-slate-800 mb-4" />
+                      <p className="text-slate-500 dark:text-slate-400 font-medium">{t('no_users_found', 'Nenhum usuário encontrado.')}</p>
                     </div>
                   </td>
                 </tr>
@@ -332,5 +332,6 @@ export default function Users() {
         </div>
       </div>
     </div>
+
   );
 }

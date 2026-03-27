@@ -77,11 +77,11 @@ export default function Dashboard() {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">{t('dashboard')}</h2>
-            <p className="text-slate-500 mt-1">{t('real_time_kpis')}</p>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('dashboard')}</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('real_time_kpis')}</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 shadow-sm">
+            <div className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 shadow-sm transition-colors">
               {t('last_30_days')}
             </div>
             <button className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-colors">
@@ -89,6 +89,7 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
 
         {/* KPI Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

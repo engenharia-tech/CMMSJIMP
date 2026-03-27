@@ -113,71 +113,71 @@ export function AddOrderModal({ isOpen, onClose, equipmentList = [], initialEqui
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <h3 className="text-xl font-bold text-slate-900">{t('new_maintenance_order')}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-            <X className="w-5 h-5 text-slate-500" />
+      <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 transition-colors">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('new_maintenance_order')}</h3>
+          <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+            <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
           </button>
         </div>
         
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('order_number_label')}</label>
-              <input {...register('order_number')} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none" />
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('order_number_label')}</label>
+              <input {...register('order_number')} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-900 dark:text-white transition-colors" />
               {errors.order_number && <p className="text-red-500 text-[10px] font-bold">{errors.order_number.message}</p>}
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('equipment')}</label>
-              <select {...register('equipment_id')} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none">
-                <option value="">{t('select_equipment')}</option>
-                {(internalEquipment.length > 0 ? internalEquipment : equipmentList).map(e => <option key={e.id} value={e.id}>{e.equipment_name} ({e.registration_number})</option>)}
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('equipment')}</label>
+              <select {...register('equipment_id')} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-900 dark:text-white transition-colors">
+                <option value="" className="dark:bg-slate-900">{t('select_equipment')}</option>
+                {(internalEquipment.length > 0 ? internalEquipment : equipmentList).map(e => <option key={e.id} value={e.id} className="dark:bg-slate-900">{e.equipment_name} ({e.registration_number})</option>)}
               </select>
               {errors.equipment_id && <p className="text-red-500 text-[10px] font-bold">{errors.equipment_id.message}</p>}
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('sector')}</label>
-              <input {...register('sector')} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none" />
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('sector')}</label>
+              <input {...register('sector')} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-900 dark:text-white transition-colors" />
               {errors.sector && <p className="text-red-500 text-[10px] font-bold">{errors.sector.message}</p>}
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('requester')}</label>
-              <input {...register('requester')} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none" />
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('requester')}</label>
+              <input {...register('requester')} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-900 dark:text-white transition-colors" />
               {errors.requester && <p className="text-red-500 text-[10px] font-bold">{errors.requester.message}</p>}
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('operator')}</label>
-              <input {...register('operator')} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none" />
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('operator')}</label>
+              <input {...register('operator')} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-900 dark:text-white transition-colors" />
               {errors.operator && <p className="text-red-500 text-[10px] font-bold">{errors.operator.message}</p>}
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('type')}</label>
-              <select {...register('action_type')} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none">
-                <option value="preventive">{t('preventive_type')}</option>
-                <option value="corrective">{t('corrective_type')}</option>
-                <option value="predictive">{t('predictive_type')}</option>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('type')}</label>
+              <select {...register('action_type')} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-900 dark:text-white transition-colors">
+                <option value="preventive" className="dark:bg-slate-900">{t('preventive_type')}</option>
+                <option value="corrective" className="dark:bg-slate-900">{t('corrective_type')}</option>
+                <option value="predictive" className="dark:bg-slate-900">{t('predictive_type')}</option>
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('priority')}</label>
-              <select {...register('priority')} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none">
-                <option value="low">{t('low')}</option>
-                <option value="medium">{t('medium')}</option>
-                <option value="high">{t('high')}</option>
-                <option value="critical">{t('critical')}</option>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('priority')}</label>
+              <select {...register('priority')} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none text-slate-900 dark:text-white transition-colors">
+                <option value="low" className="dark:bg-slate-900">{t('low')}</option>
+                <option value="medium" className="dark:bg-slate-900">{t('medium')}</option>
+                <option value="high" className="dark:bg-slate-900">{t('high')}</option>
+                <option value="critical" className="dark:bg-slate-900">{t('critical')}</option>
               </select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('problem_description')}</label>
-            <textarea {...register('problem_description')} rows={3} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none resize-none" />
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('problem_description')}</label>
+            <textarea {...register('problem_description')} rows={3} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 outline-none resize-none text-slate-900 dark:text-white transition-colors" />
             {errors.problem_description && <p className="text-red-500 text-[10px] font-bold">{errors.problem_description.message}</p>}
           </div>
           
-          <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="px-6 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">{t('cancel')}</button>
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+            <button type="button" onClick={onClose} className="px-6 py-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">{t('cancel')}</button>
             <button type="submit" disabled={isSubmitting} className="px-8 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all disabled:opacity-50">
               {isSubmitting ? t('saving') : t('create_order')}
             </button>
@@ -185,5 +185,6 @@ export function AddOrderModal({ isOpen, onClose, equipmentList = [], initialEqui
         </form>
       </div>
     </div>
+
   );
 }

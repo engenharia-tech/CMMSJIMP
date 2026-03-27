@@ -11,16 +11,16 @@ import { EditOrderModal } from '@/components/modals/EditOrderModal';
 import { toast } from 'sonner';
 
 const statusColors = {
-  open: 'bg-red-50 text-red-600 border-red-100',
-  in_progress: 'bg-yellow-50 text-yellow-600 border-yellow-100',
-  completed: 'bg-green-50 text-green-600 border-green-100',
+  open: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30',
+  in_progress: 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border-yellow-100 dark:border-yellow-900/30',
+  completed: 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/30',
 };
 
 const priorityColors = {
-  low: 'text-blue-500',
-  medium: 'text-yellow-500',
-  high: 'text-orange-500',
-  critical: 'text-red-600 font-black',
+  low: 'text-blue-500 dark:text-blue-400',
+  medium: 'text-yellow-500 dark:text-yellow-400',
+  high: 'text-orange-500 dark:text-orange-400',
+  critical: 'text-red-600 dark:text-red-400 font-black',
 };
 
 export default function MaintenanceOrdersPage() {
@@ -72,8 +72,8 @@ export default function MaintenanceOrdersPage() {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">{t('maintenance_orders')}</h2>
-            <p className="text-slate-500 mt-1">{t('maintenance_desc')}</p>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('maintenance_orders')}</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('maintenance_desc')}</p>
           </div>
           <button 
             onClick={() => setShowAddModal(true)}
@@ -85,63 +85,63 @@ export default function MaintenanceOrdersPage() {
         </div>
 
         {/* Filters and Search */}
-        <div className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
               placeholder={t('search_orders_placeholder')} 
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-colors"
             />
           </div>
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50">
+            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               <Filter className="w-4 h-4" />
               {t('filters')}
             </button>
-            <div className="h-8 w-px bg-slate-200 mx-2" />
-            <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
-              <button className="px-3 py-1 text-xs font-bold bg-white text-blue-600 rounded-md shadow-sm border border-slate-200">{t('all')}</button>
-              <button className="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-700">{t('open')}</button>
-              <button className="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-700">{t('in_progress')}</button>
-              <button className="px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-700">{t('completed')}</button>
+            <div className="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2 transition-colors" />
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors">
+              <button className="px-3 py-1 text-xs font-bold bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-md shadow-sm border border-slate-200 dark:border-slate-700 transition-colors">{t('all')}</button>
+              <button className="px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">{t('open')}</button>
+              <button className="px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">{t('in_progress')}</button>
+              <button className="px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">{t('completed')}</button>
             </div>
           </div>
         </div>
 
         {/* Orders Table */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">{t('order_number_label')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">{t('equipment')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">{t('type')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">{t('priority')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">{t('status')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">{t('maintenance_cost')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500">{t('date')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">{t('actions')}</th>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">{t('order_number_label')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">{t('equipment')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">{t('type')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">{t('priority')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">{t('status')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">{t('maintenance_cost')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">{t('date')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 text-right">{t('actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {orders.map((order) => (
-                <tr key={order.id} className="hover:bg-slate-50/50 transition-colors group">
+                <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group">
                   <td className="px-6 py-4">
-                    <span className="font-bold text-slate-900">{order.order_number}</span>
+                    <span className="font-bold text-slate-900 dark:text-white">{order.order_number}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-slate-700">
+                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                         {equipment.find(e => e.id === order.equipment_id)?.equipment_name || order.equipment_id}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{order.sector}</span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">{order.sector}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={cn(
                       "px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border",
-                      order.action_type === 'preventive' ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-orange-50 text-orange-600 border-orange-100"
+                      order.action_type === 'preventive' ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30" : "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-900/30"
                     )}>
                       {t(order.action_type)}
                     </span>
@@ -163,19 +163,19 @@ export default function MaintenanceOrdersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-xs font-bold text-slate-900">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">
                       {order.maintenance_cost ? `R$ ${order.maintenance_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-xs text-slate-500 font-medium">{order.request_date}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{order.request_date}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       {order.status !== 'completed' && (
                         <button 
                           onClick={() => handleCompleteOrder(order)}
-                          className="p-2 hover:bg-green-50 rounded-lg text-green-600 transition-colors"
+                          className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg text-green-600 dark:text-green-400 transition-colors"
                           title={t('complete_order', 'Finalizar Ordem')}
                         >
                           <CheckCircle2 className="w-4 h-4" />
@@ -183,7 +183,7 @@ export default function MaintenanceOrdersPage() {
                       )}
                       <button 
                         onClick={() => handleEditOrder(order)}
-                        className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 group-hover:text-blue-600 transition-colors"
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
                         title={t('edit_order_costs', 'Gerenciar Custos')}
                       >
                         <MoreVertical className="w-4 h-4" />
@@ -197,14 +197,15 @@ export default function MaintenanceOrdersPage() {
 
           {orders.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                <ClipboardList className="w-8 h-8 text-slate-300" />
+              <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                <ClipboardList className="w-8 h-8 text-slate-300 dark:text-slate-600" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900">{t('no_orders_found')}</h3>
-              <p className="text-slate-500 mt-1">{t('all_systems_running')}</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('no_orders_found')}</h3>
+              <p className="text-slate-500 dark:text-slate-400 mt-1">{t('all_systems_running')}</p>
             </div>
           )}
         </div>
+
 
         <AddOrderModal 
           isOpen={showAddModal} 
