@@ -1,0 +1,7 @@
+{
+  "name": "CMMS JIMP",
+  "description": "Industrial Maintenance Management System (CMMS) for large-scale industry with AI-powered failure analysis and real-time KPIs.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
