@@ -14,6 +14,7 @@ import MaintenanceOrdersPage from './pages/MaintenanceOrders';
 import AnalyticsPage from './pages/Analytics';
 import UsersPage from './pages/Users';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 import MaintenancePlanningPage from './pages/MaintenancePlanning';
 import PartsPage from './pages/Parts';
 import CostsPage from './pages/Costs';
@@ -119,6 +120,7 @@ export default function App() {
     <BrowserRouter>
       <Toaster position="top-right" richColors />
       <Routes>
+        <Route path="/reset-password" element={<ResetPassword />} />
         {!user ? (
           <>
             <Route path="/login" element={<Login />} />
@@ -133,7 +135,7 @@ export default function App() {
             <Route path="/parts" element={<PartsPage />} />
             <Route path="/costs" element={<CostsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/users" element={user.role === 'admin' ? <UsersPage /> : <Navigate to="/" replace />} />
+            <Route path="/users" element={(user.role === 'admin' || user.email === 'efariaseng0@gmail.com') ? <UsersPage /> : <Navigate to="/" replace />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

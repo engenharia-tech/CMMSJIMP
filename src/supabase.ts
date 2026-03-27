@@ -1,19 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-const rawUrl = import.meta.env.VITE_SUPABASE_URL || (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_URL : '') || '';
-const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || (typeof process !== 'undefined' ? process.env?.VITE_SUPABASE_ANON_KEY : '') || '';
+const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Sanitize inputs: trim whitespace and remove trailing slashes
 const supabaseUrl = rawUrl.trim().replace(/\/$/, '');
 const supabaseAnonKey = rawKey.trim();
 
-console.log('Supabase URL configured:', !!supabaseUrl);
-console.log('Supabase Key configured:', !!supabaseAnonKey);
-
 export const isSupabaseConfigured = !!(
   supabaseUrl && 
   supabaseAnonKey && 
-  supabaseUrl.startsWith('https://')
+  supabaseUrl.startsWith('https://') && 
+  supabaseUrl.includes('.supabase.co')
 );
 
 // Use placeholders to prevent crash during initialization if env vars are missing
@@ -79,6 +77,22 @@ export const signInWithGoogle = async () => {
 export const signOut = async () => {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+};
+
+export const resetPasswordForEmail = async (email: string) => {
+  if (!isSupabaseConfigured) throw new Error('Supabase is not configured');
+  
+  // Get the current origin and ensure it doesn't have a trailing slash
+  const origin = window.location.origin.replace(/\/$/, '');
+  const redirectTo = `${origin}/reset-password`;
+  
+  console.log('Requesting password reset with redirect to:', redirectTo);
+  
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+  if (error) throw error;
+  return data;
 };
 
 export const getUserProfile = async (userId: string) => {

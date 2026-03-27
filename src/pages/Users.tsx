@@ -40,7 +40,12 @@ export default function Users() {
       if (error) throw error;
       setProfiles(data || []);
     } catch (error: any) {
-      toast.error(t('failed_fetch_users'));
+      console.error("Fetch profiles error:", error);
+      if (error.code === 'PGRST116' || error.message?.includes('relation "public.profiles" does not exist')) {
+        toast.error(t('supabase_schema_missing'));
+      } else {
+        toast.error(`${t('failed_fetch_users')}: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -58,7 +63,10 @@ export default function Users() {
 
       const result = await response.json();
 
-      if (!response.ok) throw new Error(result.error || t('failed_to_create_account'));
+      if (!response.ok) {
+        const errorMsg = result.error === 'user_already_registered' ? t('user_already_registered') : (result.error || t('failed_to_create_account'));
+        throw new Error(errorMsg);
+      }
 
       toast.success(t('user_created_success'));
       setIsAdding(false);
@@ -125,6 +133,14 @@ export default function Users() {
 
   return (
     <div className="space-y-8">
+      {!profiles.length && !loading && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3 text-amber-700">
+          <AlertCircle className="w-5 h-5" />
+          <p className="text-sm font-bold">
+            {t('admin_setup_warning', 'Atenção: Certifique-se de ter executado o script SQL no Supabase e configurado a variável SUPABASE_SERVICE_ROLE_KEY.')}
+          </p>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-4xl font-black text-slate-900 tracking-tighter">{t('user_management')}</h2>
@@ -264,7 +280,7 @@ export default function Users() {
                       </div>
                       <div>
                         <p className="font-black text-slate-900 tracking-tight">{profile.full_name}</p>
-                        <p className="text-xs text-slate-500 font-medium">{profile.id}</p>
+                        <p className="text-xs text-slate-500 font-medium">{profile.email || profile.id}</p>
                       </div>
                     </div>
                   </td>

@@ -38,7 +38,7 @@ const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
 // API to create a new user (Admin only)
 app.post("/api/admin/create-user", async (req, res) => {
   if (!supabaseAdmin) {
-    return res.status(500).json({ error: "Supabase Admin not configured" });
+    return res.status(500).json({ error: "Supabase Admin não configurado. Por favor, adicione a variável SUPABASE_SERVICE_ROLE_KEY nas configurações do ambiente." });
   }
 
   const { email, password, fullName, role } = req.body;
@@ -49,20 +49,14 @@ app.post("/api/admin/create-user", async (req, res) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name: fullName }
+      user_metadata: { full_name: fullName, role: role || 'operator' }
     });
 
-    if (authError) throw authError;
-
-    // 2. The trigger 'on_auth_user_created' should automatically create the profile.
-    // We just need to update the role if it's not the default 'operator'.
-    if (role && role !== 'operator') {
-      const { error: profileError } = await supabaseAdmin
-        .from('profiles')
-        .update({ role })
-        .eq('id', authData.user.id);
-
-      if (profileError) throw profileError;
+    if (authError) {
+      if (authError.message.includes("already been registered")) {
+        return res.status(409).json({ error: "user_already_registered", message: authError.message });
+      }
+      throw authError;
     }
 
     res.json({ success: true, user: authData.user });

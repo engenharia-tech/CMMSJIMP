@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { LogIn, ShieldCheck, Zap, BrainCircuit, UserPlus, Mail, Lock, User } from 'lucide-react';
+import { LogIn, ShieldCheck, Zap, BrainCircuit, UserPlus, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import { Logo } from '@/components/Logo';
-import { signInWithEmail, signUpWithEmail } from '@/supabase';
+import { signInWithEmail, signUpWithEmail, resetPasswordForEmail } from '@/supabase';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +12,7 @@ export default function Login() {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
 
   const loginSchema = z.object({
     email: z.string().email(t('invalid_email')),
@@ -22,8 +23,13 @@ export default function Login() {
     fullName: z.string().min(2, t('full_name_required')),
   });
 
+  const forgotPasswordSchema = z.object({
+    email: z.string().email(t('invalid_email')),
+  });
+
   type LoginFormValues = z.infer<typeof loginSchema>;
   type SignupFormValues = z.infer<typeof signupSchema>;
+  type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -31,6 +37,10 @@ export default function Login() {
 
   const signupForm = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
+  });
+
+  const forgotPasswordForm = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
   });
 
   const onLoginSubmit = async (data: LoginFormValues) => {
@@ -82,7 +92,25 @@ export default function Login() {
       setIsSignUp(false);
     } catch (error: any) {
       console.error('Signup error:', error);
-      toast.error(error.message || t('failed_to_create_account'));
+      let message = error.message || t('failed_to_create_account');
+      if (error.message?.includes("already been registered")) {
+        message = t('user_already_registered');
+      }
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onForgotPasswordSubmit = async (data: ForgotPasswordFormValues) => {
+    setIsLoading(true);
+    try {
+      await resetPasswordForEmail(data.email);
+      toast.success(t('password_reset_email_sent'));
+      setIsForgotPassword(false);
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      toast.error(error.message || t('failed_to_send_reset_email'));
     } finally {
       setIsLoading(false);
     }
@@ -107,14 +135,53 @@ export default function Login() {
 
         <div className="bg-white/5 p-4 rounded-xl mb-8 border border-white/5 text-center">
           <h2 className="text-sm font-bold text-white mb-1">
-            {isSignUp ? t('create_account') : t('restricted_access')}
+            {isForgotPassword ? t('reset_password') : isSignUp ? t('create_account') : t('restricted_access')}
           </h2>
           <p className="text-[10px] text-slate-400">
-            {isSignUp ? t('join_network') : t('sign_in_credentials')}
+            {isForgotPassword ? t('enter_email_to_reset') : isSignUp ? t('join_network') : t('sign_in_credentials')}
           </p>
         </div>
 
-        {isSignUp ? (
+        {isForgotPassword ? (
+          <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
+            <div className="space-y-1">
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                <input
+                  {...forgotPasswordForm.register('email')}
+                  type="email"
+                  placeholder={t('email_address')}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                />
+              </div>
+              {forgotPasswordForm.formState.errors.email && (
+                <p className="text-red-400 text-xs font-medium pl-2">{forgotPasswordForm.formState.errors.email.message}</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-4 bg-blue-600 text-white rounded-xl font-black text-lg shadow-xl hover:bg-blue-700 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 disabled:active:scale-100"
+            >
+              {isLoading ? (
+                <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Mail className="w-6 h-6" />
+                  {t('send_reset_link')}
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsForgotPassword(false)}
+              className="w-full py-3 text-slate-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {t('back_to_login')}
+            </button>
+          </form>
+        ) : isSignUp ? (
           <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
             <div className="space-y-1">
               <div className="relative">
@@ -203,6 +270,15 @@ export default function Login() {
                 <p className="text-red-400 text-xs font-medium pl-2">{loginForm.formState.errors.password.message}</p>
               )}
             </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsForgotPassword(true)}
+                className="text-[10px] font-bold text-slate-400 hover:text-white transition-colors uppercase tracking-widest"
+              >
+                {t('forgot_password')}
+              </button>
+            </div>
             <button
               type="submit"
               disabled={isLoading}
@@ -222,7 +298,10 @@ export default function Login() {
 
         <div className="mt-6 text-center">
           <button
-            onClick={() => setIsSignUp(!isSignUp)}
+            onClick={() => {
+              setIsSignUp(!isSignUp);
+              setIsForgotPassword(false);
+            }}
             className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest"
           >
             {isSignUp ? t('already_have_account') : t('dont_have_account')}
