@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { X } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { addEquipment } from '@/services/maintenanceService';
+import { uploadEquipmentPhoto } from '@/lib/storage';
 import { Criticality, EquipmentStatus } from '@/types';
 import { toast } from 'sonner';
 
@@ -18,8 +19,9 @@ const schema = z.object({
   serial_number: z.string().min(1, "Required"),
   acquisition_date: z.string().min(1, "Required"),
   criticality: z.enum(['low', 'medium', 'high', 'critical']),
-  status: z.enum(['active', 'inactive', 'maintenance']),
+  status: z.enum(['active', 'inactive', 'maintenance', 'obsolete']),
   expected_life: z.number().min(1),
+  photo_url: z.string().url("Invalid URL").or(z.literal("")).optional(),
   notes: z.string().optional(),
 });
 
@@ -32,14 +34,45 @@ interface Props {
 
 export function AddEquipmentModal({ isOpen, onClose }: Props) {
   const { t } = useTranslation();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const [uploading, setUploading] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       criticality: 'medium',
       status: 'active',
       expected_life: 10,
+      photo_url: '',
     }
   });
+
+  const photoUrl = watch('photo_url');
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show local preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    try {
+      setUploading(true);
+      const url = await uploadEquipmentPhoto(file);
+      setValue('photo_url', url);
+      toast.success(t('photo_uploaded', 'Photo uploaded successfully'));
+    } catch (error) {
+      toast.error(t('upload_error', 'Error uploading photo'));
+      setPhotoPreview(null);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -153,6 +186,57 @@ export function AddEquipmentModal({ isOpen, onClose }: Props) {
                 <option value="inactive">{t('inactive')}</option>
                 <option value="maintenance">{t('maintenance')}</option>
               </select>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('photo_url')}</label>
+              <div className="flex flex-col md:flex-row gap-4 items-start">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-32 h-32 bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/50 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all overflow-hidden relative group"
+                >
+                  {photoPreview || photoUrl ? (
+                    <>
+                      <img src={photoPreview || photoUrl} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <Upload className="w-6 h-6 text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center px-2">
+                        {uploading ? t('uploading') : t('select_photo')}
+                      </span>
+                    </>
+                  )}
+                  {uploading && (
+                    <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1 w-full space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium italic">
+                      {t('photo_upload_hint', 'Upload a photo of the equipment to help with identification. Images are compressed automatically.')}
+                    </p>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <input 
+                      {...register('photo_url')} 
+                      placeholder="https://..." 
+                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors text-sm" 
+                    />
+                    {errors.photo_url && <p className="text-xs text-red-500">{errors.photo_url.message}</p>}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           

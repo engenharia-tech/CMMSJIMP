@@ -10,7 +10,8 @@ import {
   Settings,
   Package,
   Users,
-  LogOut
+  LogOut,
+  X
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Logo } from './Logo';
@@ -30,7 +31,13 @@ const navItems = [
   { icon: Settings, label: 'settings', path: '/settings' },
 ];
 
-export function Sidebar({ user }: { user: any }) {
+interface SidebarProps {
+  user: any;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -45,13 +52,24 @@ export function Sidebar({ user }: { user: any }) {
   };
 
   return (
-    <aside className="w-64 bg-slate-900 text-white h-screen flex flex-col fixed left-0 top-0 z-50">
-      <div className="p-6 flex items-center gap-3">
-        <Logo size="sm" />
-        <div>
-          <h1 className="text-xl font-bold tracking-tighter text-blue-400 leading-none">CMMS JIMP</h1>
-          <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-semibold leading-none">{t('industrial_maintenance')}</p>
+    <aside className={cn(
+      "w-64 bg-slate-900 text-white h-screen flex flex-col fixed left-0 top-0 z-50 transition-transform duration-300 lg:translate-x-0",
+      isOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
+      <div className="p-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Logo size="sm" />
+          <div>
+            <h1 className="text-xl font-bold tracking-tighter text-blue-400 leading-none">CMMS JIMP</h1>
+            <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-semibold leading-none">{t('industrial_maintenance')}</p>
+          </div>
         </div>
+        <button 
+          onClick={onClose}
+          className="lg:hidden p-2 hover:bg-slate-800 rounded-lg transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
       
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
@@ -59,6 +77,9 @@ export function Sidebar({ user }: { user: any }) {
           <NavLink
             key={item.path}
             to={item.path}
+            onClick={() => {
+              if (window.innerWidth < 1024) onClose();
+            }}
             className={({ isActive }) => cn(
               "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group",
               isActive 

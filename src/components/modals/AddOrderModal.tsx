@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { X } from 'lucide-react';
 import { addOrder, updateEquipment, getEquipment } from '@/services/maintenanceService';
+import { supabase } from '../../supabase';
 import { Criticality, OrderStatus, ActionType, Equipment } from '@/types';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -58,6 +59,16 @@ export function AddOrderModal({ isOpen, onClose, equipmentList = [], initialEqui
   });
 
   React.useEffect(() => {
+    const fetchNextNumber = async () => {
+      const { data } = await supabase.rpc('get_next_order_number');
+      if (data) {
+        reset((prev) => ({
+          ...prev,
+          order_number: data
+        }));
+      }
+    };
+
     if (isOpen) {
       reset({
         request_date: new Date().toISOString().split('T')[0],
@@ -67,8 +78,13 @@ export function AddOrderModal({ isOpen, onClose, equipmentList = [], initialEqui
         status: 'open',
         downtime_hours: 0,
         maintenance_cost: 0,
-        order_number: `OM-${Math.floor(1000 + Math.random() * 9000)}`
+        order_number: '...',
+        sector: '',
+        requester: '',
+        operator: '',
+        problem_description: ''
       });
+      fetchNextNumber();
     }
   }, [isOpen, initialEquipmentId, initialActionType, reset]);
 

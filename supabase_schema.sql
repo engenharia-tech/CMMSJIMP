@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS public.equipment (
   criticality TEXT DEFAULT 'medium',
   status TEXT DEFAULT 'active',
   expected_life INTEGER DEFAULT 1,
+  photo_url TEXT,
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
@@ -58,8 +59,32 @@ CREATE TABLE IF NOT EXISTS public.maintenance_orders (
   completion_date TIMESTAMP WITH TIME ZONE,
   next_preventive_date DATE,
   status TEXT DEFAULT 'open',
+  created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
+
+-- Function to generate sequential order number: OM-XXXX/YY
+CREATE OR REPLACE FUNCTION public.get_next_order_number()
+RETURNS TEXT AS $$
+DECLARE
+  current_year TEXT;
+  next_seq INTEGER;
+  new_order_number TEXT;
+BEGIN
+  current_year := TO_CHAR(CURRENT_DATE, 'YY');
+  
+  -- Find the max sequence for the current year
+  -- We look for patterns like 'OM-0001/26'
+  SELECT COALESCE(MAX(SUBSTRING(order_number FROM 4 FOR 4)::INTEGER), 0) + 1
+  INTO next_seq
+  FROM public.maintenance_orders
+  WHERE order_number LIKE 'OM-%/' || current_year;
+  
+  new_order_number := 'OM-' || LPAD(next_seq::TEXT, 4, '0') || '/' || current_year;
+  
+  RETURN new_order_number;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create parts table
 CREATE TABLE IF NOT EXISTS public.parts (
@@ -186,3 +211,14 @@ CREATE POLICY "Allow authenticated users to insert settings" ON public.settings
 
 CREATE POLICY "Allow authenticated users to update settings" ON public.settings
   FOR UPDATE TO authenticated USING (true);
+
+/* 
+  STORAGE BUCKET SETUP:
+  1. Go to Supabase Console -> Storage
+  2. Create a new bucket named 'equipment-photos'
+  3. Set the bucket to 'Public'
+  4. (Optional) Add a policy to allow authenticated users to upload files:
+     - Policy Name: 'Allow authenticated uploads'
+     - Allowed Operations: INSERT
+     - Target Roles: authenticated
+*/

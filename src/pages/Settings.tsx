@@ -49,15 +49,15 @@ export default function SettingsPage() {
   return (
     <ErrorBoundary>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('settings')}</h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('settings_desc_full', 'Configure your application preferences and system settings.')}</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('settings')}</h2>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('settings_desc_full', 'Configure your application preferences and system settings.')}</p>
           </div>
           <button 
             onClick={handleSave}
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-900 dark:bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-slate-900/20 hover:bg-slate-800 dark:hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 dark:bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-slate-900/20 hover:bg-slate-800 dark:hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
           >
             {loading ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <Save className="w-5 h-5" />}
             {t('save_changes', 'Save Changes')}

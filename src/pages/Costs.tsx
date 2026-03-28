@@ -82,14 +82,14 @@ export default function CostsPage() {
   return (
     <ErrorBoundary>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('cost_management')}</h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('costs_desc_full', 'Track and analyze your maintenance expenditures.')}</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('cost_management')}</h2>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('costs_desc_full', 'Track and analyze your maintenance expenditures.')}</p>
           </div>
           <button 
             onClick={handleExportCosts}
-            className="flex items-center gap-2 px-6 py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-xl font-bold shadow-lg shadow-slate-900/20 hover:bg-slate-800 dark:hover:bg-slate-700 transition-all active:scale-95"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-xl font-bold shadow-lg shadow-slate-900/20 hover:bg-slate-800 dark:hover:bg-slate-700 transition-all active:scale-95"
           >
             <Download className="w-5 h-5" />
             {t('export_report')}

@@ -4,6 +4,7 @@ import { supabase } from '@/supabase';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
+import { ConfirmationModal } from '@/components/modals/ConfirmationModal';
 
 interface Profile {
   id: string;
@@ -18,6 +19,8 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -114,20 +117,28 @@ export default function Users() {
     });
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm(t('delete_user_confirm'))) return;
+  const handleDeleteUser = (userId: string) => {
+    setUserToDelete(userId);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
     
+    setIsDeleting(true);
     try {
       const { error } = await supabase
         .from('profiles')
         .delete()
-        .eq('id', userId);
+        .eq('id', userToDelete);
 
       if (error) throw error;
       toast.success(t('profile_removed'));
+      setUserToDelete(null);
       fetchProfiles();
     } catch (error: any) {
       toast.error(t('failed_delete_profile'));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -141,14 +152,14 @@ export default function Users() {
           </p>
         </div>
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{t('user_management')}</h2>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">{t('user_management_desc')}</p>
+          <h2 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{t('user_management')}</h2>
+          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium">{t('user_management_desc')}</p>
         </div>
         <button
           onClick={() => setIsAdding(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"
+          className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"
         >
           <UserPlus className="w-5 h-5" />
           {t('add_new_user')}
@@ -260,7 +271,7 @@ export default function Users() {
       </AnimatePresence>
 
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/50 border-bottom border-slate-200 dark:border-slate-800">
@@ -330,7 +341,71 @@ export default function Users() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile View (Cards) */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+          {profiles.map((profile) => (
+            <div key={profile.id} className="p-6 space-y-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center transition-colors">
+                    <UserIcon className="w-6 h-6 text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <div>
+                    <p className="font-black text-slate-900 dark:text-white tracking-tight leading-tight">{profile.full_name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{profile.email || profile.id}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => startEditing(profile)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-400 dark:text-slate-500 transition-colors"
+                  >
+                    <Edit2 className="w-5 h-5" />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteUser(profile.id)}
+                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-slate-400 dark:text-slate-500 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                  profile.role === 'admin' ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900/30' :
+                  profile.role === 'engineer' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30' :
+                  'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-100 dark:border-slate-700'
+                }`}>
+                  {t(profile.role)}
+                </span>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{t('active')}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+          {profiles.length === 0 && !loading && (
+            <div className="px-8 py-20 text-center">
+              <div className="flex flex-col items-center justify-center">
+                <UserIcon className="w-12 h-12 text-slate-200 dark:text-slate-800 mb-4" />
+                <p className="text-slate-500 dark:text-slate-400 font-medium">{t('no_users_found', 'Nenhum usuário encontrado.')}</p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={!!userToDelete}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={confirmDeleteUser}
+        title={t('delete_user_title', 'Excluir Usuário')}
+        message={t('delete_user_confirm')}
+        isLoading={isDeleting}
+      />
     </div>
 
   );

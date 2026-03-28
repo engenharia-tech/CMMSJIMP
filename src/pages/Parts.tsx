@@ -6,6 +6,7 @@ import { Part } from '@/types';
 import { toast } from 'sonner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AddPartModal } from '@/components/modals/AddPartModal';
+import { ConfirmationModal } from '@/components/modals/ConfirmationModal';
 
 export default function PartsPage() {
   const { t } = useTranslation();
@@ -13,6 +14,8 @@ export default function PartsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [partToDelete, setPartToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const unsub = getParts((data) => {
@@ -22,13 +25,22 @@ export default function PartsPage() {
     return unsub;
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm(t('delete_confirm', 'Are you sure you want to delete this part?'))) return;
+  const handleDelete = (id: string) => {
+    setPartToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!partToDelete) return;
+    
+    setIsDeleting(true);
     try {
-      await deletePart(id);
+      await deletePart(partToDelete);
       toast.success(t('part_deleted', 'Part deleted successfully'));
+      setPartToDelete(null);
     } catch (error) {
       toast.error(t('delete_error', 'Failed to delete part'));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -40,14 +52,14 @@ export default function PartsPage() {
   return (
     <ErrorBoundary>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('parts_inventory')}</h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('manage_parts_desc', 'Manage your spare parts and stock levels.')}</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('parts_inventory')}</h2>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('manage_parts_desc', 'Manage your spare parts and stock levels.')}</p>
           </div>
           <button 
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"
           >
             <Plus className="w-5 h-5" />
             {t('add_part', 'Add Part')}
@@ -68,7 +80,7 @@ export default function PartsPage() {
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 transition-colors">
@@ -128,6 +140,60 @@ export default function PartsPage() {
             </table>
           </div>
 
+          {/* Mobile View (Cards) */}
+          <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {filteredParts.map((part) => (
+              <div key={part.id} className="p-4 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center text-slate-400 dark:text-slate-500 transition-colors">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white leading-tight">{part.part_name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-0.5">{part.part_code}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-500 transition-colors">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(part.id)}
+                      className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('stock', 'Stock')}</p>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-bold ${part.stock_quantity <= part.minimum_stock ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                        {part.stock_quantity}
+                      </span>
+                      {part.stock_quantity <= part.minimum_stock && (
+                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('unit_cost', 'Unit Cost')}</p>
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      R$ {part.unit_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div className="col-span-2 space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('supplier', 'Supplier')}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{part.supplier}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
           {filteredParts.length === 0 && !loading && (
             <div className="p-20 text-center">
               <p className="text-slate-500 dark:text-slate-400">{t('no_parts_found', 'No parts found.')}</p>
@@ -136,6 +202,15 @@ export default function PartsPage() {
         </div>
 
         <AddPartModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
+
+        <ConfirmationModal
+          isOpen={!!partToDelete}
+          onClose={() => setPartToDelete(null)}
+          onConfirm={confirmDelete}
+          title={t('delete_part_title', 'Excluir Peça')}
+          message={t('delete_confirm', 'Tem certeza que deseja excluir esta peça?')}
+          isLoading={isDeleting}
+        />
       </div>
     </ErrorBoundary>
   );

@@ -101,17 +101,17 @@ export default function MaintenancePlanningPage() {
   return (
     <ErrorBoundary>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('maintenance_planning')}</h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('manage_maintenance_types', 'Manage preventive, predictive and corrective actions.')}</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('maintenance_planning')}</h2>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('manage_maintenance_types', 'Manage preventive, predictive and corrective actions.')}</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
               <select 
                 value={reportMonth} 
                 onChange={(e) => setReportMonth(parseInt(e.target.value))}
-                className="bg-transparent text-sm font-bold text-slate-600 dark:text-slate-400 outline-none"
+                className="bg-transparent text-sm font-bold text-slate-600 dark:text-slate-400 outline-none flex-1"
               >
                 {Array.from({ length: 12 }).map((_, i) => (
                   <option key={i} value={i} className="dark:bg-slate-900">{format(new Date(2024, i, 1), 'MMMM', { locale: ptBR })}</option>
@@ -120,7 +120,7 @@ export default function MaintenancePlanningPage() {
               <select 
                 value={reportYear} 
                 onChange={(e) => setReportYear(parseInt(e.target.value))}
-                className="bg-transparent text-sm font-bold text-slate-600 dark:text-slate-400 outline-none"
+                className="bg-transparent text-sm font-bold text-slate-600 dark:text-slate-400 outline-none flex-1"
               >
                 {[2024, 2025, 2026].map(y => (
                   <option key={y} value={y} className="dark:bg-slate-900">{y}</option>
@@ -128,7 +128,7 @@ export default function MaintenancePlanningPage() {
               </select>
               <button 
                 onClick={handleExportReport}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors w-full sm:w-auto"
               >
                 <Download className="w-4 h-4" />
                 {t('export_report')}
@@ -195,59 +195,105 @@ export default function MaintenancePlanningPage() {
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('equipment')}</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('last_maintenance')}</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('next_maintenance')}</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('status')}</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">{t('actions')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {upcomingMaintenance.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-slate-900 dark:text-white">{item.equipment_name}</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">{item.registration_number}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                    {item.last_maintenance}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`text-sm font-bold ${item.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                      {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: ptBR })}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {item.is_overdue ? (
-                        <span className="px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
-                          {t('overdue', 'Atrasada')}
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
-                          {t('scheduled', 'Agendada')}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={() => handleCreateAction(item)}
-                      className="flex items-center gap-2 ml-auto px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      {t('create_action')}
-                    </button>
-                  </td>
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('equipment')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('last_maintenance')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('next_maintenance')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('status')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">{t('actions')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {upcomingMaintenance.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-900 dark:text-white">{item.equipment_name}</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">{item.registration_number}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                      {item.last_maintenance}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-sm font-bold ${item.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                        {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: ptBR })}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {item.is_overdue ? (
+                          <span className="px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
+                            {t('overdue', 'Atrasada')}
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
+                            {t('scheduled', 'Agendada')}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button 
+                        onClick={() => handleCreateAction(item)}
+                        className="flex items-center gap-2 ml-auto px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        {t('create_action')}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile View (Cards) */}
+          <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            {upcomingMaintenance.map((item) => (
+              <div key={item.id} className="p-4 space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-slate-900 dark:text-white leading-tight">{item.equipment_name}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-0.5">{item.registration_number}</span>
+                  </div>
+                  {item.is_overdue ? (
+                    <span className="px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
+                      {t('overdue', 'Atrasada')}
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
+                      {t('scheduled', 'Agendada')}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('last_maintenance')}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{item.last_maintenance}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('next_maintenance')}</p>
+                    <p className={`text-sm font-bold ${item.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                      {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: ptBR })}
+                    </p>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => handleCreateAction(item)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  {t('create_action')}
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
 

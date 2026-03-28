@@ -38,18 +38,18 @@ export default function AnalyticsPage() {
   return (
     <ErrorBoundary>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-              <BrainCircuit className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+              <BrainCircuit className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 dark:text-purple-400" />
               {t('ai_analytics')}
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">{t('ai_analytics_desc')}</p>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('ai_analytics_desc')}</p>
           </div>
           <button 
             onClick={handleAnalyze}
             disabled={loading || orders.length === 0}
-            className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-2xl font-black shadow-xl shadow-purple-900/20 hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
+            className="flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-2xl font-black shadow-xl shadow-purple-900/20 hover:scale-105 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
             {t('analyze_failures')}

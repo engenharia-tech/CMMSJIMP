@@ -1,5 +1,5 @@
 export type Criticality = 'low' | 'medium' | 'high' | 'critical';
-export type EquipmentStatus = 'active' | 'inactive' | 'maintenance';
+export type EquipmentStatus = 'active' | 'inactive' | 'maintenance' | 'obsolete';
 export type OrderStatus = 'open' | 'in_progress' | 'completed';
 export type ActionType = 'preventive' | 'corrective' | 'predictive';
 export type UserRole = 'admin' | 'engineer' | 'operator';
@@ -17,6 +17,7 @@ export interface Equipment {
   criticality: Criticality;
   status: EquipmentStatus;
   expected_life: number;
+  photo_url?: string;
   notes?: string;
   responsible?: string; // Adding a separate field for responsible if needed, but user said "volte para tipo"
 }
@@ -51,6 +52,7 @@ export interface MaintenanceOrder {
   completion_date?: string;
   next_preventive_date: string;
   status: OrderStatus;
+  created_by?: string;
 }
 
 export interface User {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Bell, Globe, Moon, Sun, Check, Trash2 } from 'lucide-react';
+import { Search, Bell, Globe, Moon, Sun, Check, Trash2, Menu } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -7,7 +7,11 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
-export function Header() {
+interface HeaderProps {
+  onMenuClick: () => void;
+}
+
+export function Header({ onMenuClick }: HeaderProps) {
   const { i18n, t } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotifications } = useNotifications();
@@ -19,9 +23,16 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-8 sticky top-0 z-40 transition-colors">
+    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 sticky top-0 z-40 transition-colors">
       <div className="flex items-center gap-4 flex-1">
-        <div className="relative w-96">
+        <button 
+          onClick={onMenuClick}
+          className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-400"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+
+        <div className="relative w-full max-w-96 hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input 
             type="text" 

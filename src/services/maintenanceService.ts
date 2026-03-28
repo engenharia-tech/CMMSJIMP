@@ -45,6 +45,27 @@ export const updateEquipment = async (id: string, data: Partial<Equipment>) => {
   if (error) handleSupabaseError(error, 'UPDATE equipment');
 };
 
+export const deleteEquipment = async (id: string) => {
+  // Soft delete: mark as obsolete instead of deleting
+  const { error } = await supabase.from('equipment').update({ status: 'obsolete' }).eq('id', id);
+  if (error) handleSupabaseError(error, 'DELETE equipment (soft)');
+};
+
+export const hardDeleteEquipment = async (id: string) => {
+  const { error } = await supabase.from('equipment').delete().eq('id', id);
+  if (error) handleSupabaseError(error, 'DELETE equipment (hard)');
+};
+
+export const getEquipmentMaintenanceCount = async (equipmentId: string) => {
+  const { count, error } = await supabase
+    .from('maintenance_orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('equipment_id', equipmentId);
+  
+  if (error) handleSupabaseError(error, 'COUNT maintenance_orders');
+  return count || 0;
+};
+
 // Settings Services
 export const getSettings = async () => {
   const { data, error } = await supabase
@@ -108,8 +129,20 @@ export const getOrders = (callback: (data: MaintenanceOrder[]) => void) => {
 
 export const addOrder = async (data: Omit<MaintenanceOrder, 'id'>) => {
   console.log('maintenanceService: addOrder called with:', data);
+  
+  // Get next sequential order number
+  const { data: nextNumber, error: seqError } = await supabase.rpc('get_next_order_number');
+  if (seqError) {
+    console.error('Error generating order number:', seqError);
+  }
+
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { error } = await supabase.from('maintenance_orders').insert({
     ...data,
+    order_number: nextNumber || data.order_number,
+    created_by: user?.id,
     labor_hours: data.labor_hours || 0,
     labor_cost: data.labor_cost || 0,
     parts_cost: data.parts_cost || 0,
@@ -125,6 +158,11 @@ export const addOrder = async (data: Omit<MaintenanceOrder, 'id'>) => {
 export const updateOrder = async (id: string, data: Partial<MaintenanceOrder>) => {
   const { error } = await supabase.from('maintenance_orders').update(data).eq('id', id);
   if (error) handleSupabaseError(error, 'UPDATE maintenance_orders');
+};
+
+export const deleteOrder = async (id: string) => {
+  const { error } = await supabase.from('maintenance_orders').delete().eq('id', id);
+  if (error) handleSupabaseError(error, 'DELETE maintenance_orders');
 };
 
 // Parts Services
