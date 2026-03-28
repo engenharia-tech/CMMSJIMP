@@ -65,9 +65,9 @@ export function AddEquipmentModal({ isOpen, onClose }: Props) {
       setUploading(true);
       const url = await uploadEquipmentPhoto(file);
       setValue('photo_url', url);
-      toast.success(t('photo_uploaded', 'Photo uploaded successfully'));
+      toast.success(t('photo_uploaded'));
     } catch (error) {
-      toast.error(t('upload_error', 'Error uploading photo'));
+      toast.error(t('upload_error'));
       setPhotoPreview(null);
     } finally {
       setUploading(false);
@@ -79,14 +79,14 @@ export function AddEquipmentModal({ isOpen, onClose }: Props) {
       console.log('AddEquipmentModal: Attempting to add equipment with data:', data);
       await addEquipment(data);
       console.log('AddEquipmentModal: Equipment added successfully');
-      toast.success(t('equipment_added_success', 'Equipment added successfully'));
+      toast.success(t('equipment_added_success'));
       onClose();
     } catch (error: any) {
       console.error('AddEquipmentModal: Add equipment error:', error);
-      let errorMessage = error.message || t('equipment_added_error', 'Failed to add equipment');
+      let errorMessage = error.message || t('equipment_added_error');
       
       if (errorMessage.includes('schema cache') || errorMessage.includes('not found')) {
-        errorMessage = "Tabela 'equipment' não encontrada. Por favor, execute o script SQL no seu painel do Supabase.";
+        errorMessage = t('table_not_found', { table: 'equipment' });
       } else {
         if (error.details) {
           errorMessage += ` - ${error.details}`;
@@ -102,7 +102,7 @@ export function AddEquipmentModal({ isOpen, onClose }: Props) {
 
   const onInvalid = (errors: any) => {
     console.warn('AddEquipmentModal: Form validation errors:', errors);
-    toast.error(t('check_form_errors', 'Please check the form for errors'));
+    toast.error(t('check_form_errors'));
   };
 
   if (!isOpen) return null;
@@ -137,11 +137,11 @@ export function AddEquipmentModal({ isOpen, onClose }: Props) {
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('type')}</label>
               <select {...register('type')} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors">
-                <option value="Equipamento">{t('equipment_type')}</option>
-                <option value="Predial">{t('building_type')}</option>
-                <option value="Veículo">{t('vehicle_type')}</option>
-                <option value="TI/Escritório">{t('it_type')}</option>
-                <option value="Outros">{t('other_type')}</option>
+                <option value="equipment_type">{t('equipment_type')}</option>
+                <option value="building_type">{t('building_type')}</option>
+                <option value="vehicle_type">{t('vehicle_type')}</option>
+                <option value="it_type">{t('it_type')}</option>
+                <option value="other_type">{t('other_type')}</option>
               </select>
               {errors.type && <p className="text-xs text-red-500">{t('required')}</p>}
             </div>
@@ -219,7 +219,7 @@ export function AddEquipmentModal({ isOpen, onClose }: Props) {
                 <div className="flex-1 w-full space-y-4">
                   <div className="space-y-2">
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium italic">
-                      {t('photo_upload_hint', 'Upload a photo of the equipment to help with identification. Images are compressed automatically.')}
+                      {t('photo_upload_hint')}
                     </p>
                     <input 
                       type="file" 

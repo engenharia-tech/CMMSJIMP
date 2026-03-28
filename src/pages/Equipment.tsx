@@ -84,10 +84,10 @@ export default function EquipmentPage() {
     try {
       setIsDeleting(true);
       await hardDeleteEquipment(equipmentToDelete);
-      toast.success(t('equipment_deleted_success', 'Equipamento excluído permanentemente'));
+      toast.success(t('equipment_deleted_success'));
       setEquipmentToDelete(null);
     } catch (error: any) {
-      toast.error(error.message || t('equipment_deleted_error', 'Erro ao excluir equipamento'));
+      toast.error(error.message || t('equipment_deleted_error'));
     } finally {
       setIsDeleting(false);
     }
@@ -107,7 +107,7 @@ export default function EquipmentPage() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('equipment')}</h2>
-            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('manage_assets', 'Manage and track your industrial assets.')}</p>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('manage_assets')}</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
@@ -118,7 +118,7 @@ export default function EquipmentPage() {
                   view === 'grid' ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                 )}
               >
-                {t('grid', 'Grid')}
+                {t('grid')}
               </button>
               <button 
                 onClick={() => setView('reports')}
@@ -166,7 +166,7 @@ export default function EquipmentPage() {
                   )}
                 >
                   <CheckCircle className="w-4 h-4" />
-                  {t('active_tab', 'Ativo')}
+                  {t('active_tab')}
                 </button>
                 <button
                   onClick={() => setShowObsolete(true)}
@@ -178,7 +178,7 @@ export default function EquipmentPage() {
                   )}
                 >
                   <Trash2 className="w-4 h-4" />
-                  {t('obsolete_tab', 'Obsoleto')}
+                  {t('obsolete_tab')}
                 </button>
               </div>
               <div className="flex items-center gap-2">
@@ -188,12 +188,12 @@ export default function EquipmentPage() {
                   onChange={(e) => setTypeFilter(e.target.value)}
                   className="px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-slate-600 dark:text-slate-400 transition-colors"
                 >
-                  <option value="all">{t('all_types', 'All Types')}</option>
-                  <option value="Equipamento">{t('equipment_type')}</option>
-                  <option value="Predial">{t('building_type')}</option>
-                  <option value="Veículo">{t('vehicle_type')}</option>
-                  <option value="TI/Escritório">{t('it_type')}</option>
-                  <option value="Outros">{t('other_type')}</option>
+                  <option value="all">{t('all_types')}</option>
+                  <option value="equipment_type">{t('equipment_type')}</option>
+                  <option value="building_type">{t('building_type')}</option>
+                  <option value="vehicle_type">{t('vehicle_type')}</option>
+                  <option value="it_type">{t('it_type')}</option>
+                  <option value="other_type">{t('other_type')}</option>
                 </select>
               </div>
             </div>
@@ -245,7 +245,7 @@ export default function EquipmentPage() {
                           <button 
                             onClick={() => setEquipmentToDelete(item.id)}
                             className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-lg text-slate-400 transition-colors"
-                            title={t('delete_permanently', 'Excluir Permanentemente')}
+                            title={t('delete_permanently')}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -260,7 +260,7 @@ export default function EquipmentPage() {
                       </div>
                       <div className="space-y-1">
                         <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('type')}</p>
-                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{item.type}</p>
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t(item.type)}</p>
                       </div>
                       <div className="space-y-1">
                         <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('status')}</p>
@@ -353,7 +353,7 @@ export default function EquipmentPage() {
                           <span className="text-sm font-bold text-slate-900 dark:text-white group-hover/table-info:text-blue-600 dark:group-hover/table-info:text-blue-400 transition-colors">{item.equipment_name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-600 dark:text-slate-400">{item.type}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-600 dark:text-slate-400">{t(item.type)}</td>
                       <td className="px-6 py-4 text-sm font-semibold text-slate-600 dark:text-slate-400">{item.sector}</td>
                       <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">{maintenanceCounts[item.id] || 0}</td>
                       <td className="px-6 py-4">
@@ -398,7 +398,7 @@ export default function EquipmentPage() {
                               setShowQRCodeModal(true);
                             }}
                             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-lg text-slate-400 transition-colors"
-                            title={t('view_qrcode', 'Ver QR Code')}
+                            title={t('view_qrcode')}
                           >
                             <QrCode className="w-4 h-4" />
                           </button>
@@ -406,7 +406,7 @@ export default function EquipmentPage() {
                             <button 
                               onClick={() => setEquipmentToDelete(item.id)}
                               className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-lg text-slate-400 transition-colors"
-                              title={t('delete_permanently', 'Excluir Permanentemente')}
+                              title={t('delete_permanently')}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -467,8 +467,8 @@ export default function EquipmentPage() {
           isOpen={!!equipmentToDelete}
           onClose={() => setEquipmentToDelete(null)}
           onConfirm={handleHardDelete}
-          title={t('confirm_hard_delete_title', 'Excluir Permanentemente')}
-          message={t('confirm_hard_delete_message', 'Tem certeza que deseja excluir este equipamento permanentemente? Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.')}
+          title={t('confirm_hard_delete_title')}
+          message={t('confirm_hard_delete_message')}
           isLoading={isDeleting}
         />
       </div>

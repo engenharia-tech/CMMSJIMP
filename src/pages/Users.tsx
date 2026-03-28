@@ -96,7 +96,7 @@ export default function Users() {
         .eq('id', editingProfile.id);
 
       if (error) throw error;
-      toast.success(t('user_updated_success', 'Usuário atualizado com sucesso'));
+      toast.success(t('user_updated_success'));
       setEditingProfile(null);
       setFormData({ email: '', password: '', fullName: '', role: 'operator' });
       fetchProfiles();
@@ -148,7 +148,7 @@ export default function Users() {
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-2xl flex items-center gap-3 text-amber-700 dark:text-amber-400 transition-colors">
           <AlertCircle className="w-5 h-5" />
           <p className="text-sm font-bold">
-            {t('admin_setup_warning', 'Atenção: Certifique-se de ter executado o script SQL no Supabase e configurado a variável SUPABASE_SERVICE_ROLE_KEY.')}
+            {t('admin_setup_warning')}
           </p>
         </div>
       )}
@@ -177,7 +177,7 @@ export default function Users() {
             <div className="absolute top-0 left-0 w-2 h-full bg-blue-600" />
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                {editingProfile ? t('edit_user', 'Editar Usuário') : t('register_new_employee')}
+                {editingProfile ? t('edit_user') : t('register_new_employee')}
               </h3>
               <button onClick={() => { setIsAdding(false); setEditingProfile(null); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
                 <X className="w-6 h-6 text-slate-400 dark:text-slate-500" />
@@ -256,7 +256,7 @@ export default function Users() {
                   disabled={loading}
                   className="flex-1 bg-slate-900 dark:bg-slate-800 text-white py-4 rounded-2xl font-black text-lg shadow-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-50"
                 >
-                  {loading ? t('saving') : (editingProfile ? t('update_user', 'Atualizar Usuário') : t('confirm_registration'))}
+                  {loading ? t('saving') : (editingProfile ? t('update_user') : t('confirm_registration'))}
                 </button>
                 {!editingProfile && (
                   <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-4 py-4 rounded-2xl border border-amber-100 dark:border-amber-900/30 transition-colors">
@@ -333,7 +333,7 @@ export default function Users() {
                   <td colSpan={4} className="px-8 py-20 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <UserIcon className="w-12 h-12 text-slate-200 dark:text-slate-800 mb-4" />
-                      <p className="text-slate-500 dark:text-slate-400 font-medium">{t('no_users_found', 'Nenhum usuário encontrado.')}</p>
+                      <p className="text-slate-500 dark:text-slate-400 font-medium">{t('no_users_found')}</p>
                     </div>
                   </td>
                 </tr>
@@ -391,7 +391,7 @@ export default function Users() {
             <div className="px-8 py-20 text-center">
               <div className="flex flex-col items-center justify-center">
                 <UserIcon className="w-12 h-12 text-slate-200 dark:text-slate-800 mb-4" />
-                <p className="text-slate-500 dark:text-slate-400 font-medium">{t('no_users_found', 'Nenhum usuário encontrado.')}</p>
+                <p className="text-slate-500 dark:text-slate-400 font-medium">{t('no_users_found')}</p>
               </div>
             </div>
           )}
@@ -402,7 +402,7 @@ export default function Users() {
         isOpen={!!userToDelete}
         onClose={() => setUserToDelete(null)}
         onConfirm={confirmDeleteUser}
-        title={t('delete_user_title', 'Excluir Usuário')}
+        title={t('delete_user_title')}
         message={t('delete_user_confirm')}
         isLoading={isDeleting}
       />

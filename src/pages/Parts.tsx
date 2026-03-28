@@ -9,7 +9,7 @@ import { AddPartModal } from '@/components/modals/AddPartModal';
 import { ConfirmationModal } from '@/components/modals/ConfirmationModal';
 
 export default function PartsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [parts, setParts] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,6 +25,11 @@ export default function PartsPage() {
     return unsub;
   }, []);
 
+  const filteredParts = parts.filter(part => 
+    part.part_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    part.part_code.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const handleDelete = (id: string) => {
     setPartToDelete(id);
   };
@@ -35,19 +40,21 @@ export default function PartsPage() {
     setIsDeleting(true);
     try {
       await deletePart(partToDelete);
-      toast.success(t('part_deleted', 'Part deleted successfully'));
+      toast.success(t('part_deleted'));
       setPartToDelete(null);
     } catch (error) {
-      toast.error(t('delete_error', 'Failed to delete part'));
+      toast.error(t('delete_error'));
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const filteredParts = parts.filter(p => 
-    p.part_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.part_code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat(i18n.language === 'pt' ? 'pt-BR' : 'en-US', {
+      style: 'currency',
+      currency: i18n.language === 'pt' ? 'BRL' : 'USD'
+    }).format(value);
+  };
 
   return (
     <ErrorBoundary>
@@ -55,14 +62,14 @@ export default function PartsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('parts_inventory')}</h2>
-            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('manage_parts_desc', 'Manage your spare parts and stock levels.')}</p>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('manage_parts_desc')}</p>
           </div>
           <button 
             onClick={() => setShowAddModal(true)}
             className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"
           >
             <Plus className="w-5 h-5" />
-            {t('add_part', 'Add Part')}
+            {t('add_part')}
           </button>
         </div>
 
@@ -71,7 +78,7 @@ export default function PartsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
             <input 
               type="text" 
-              placeholder={t('search_parts_placeholder', 'Search by name or code...')}
+              placeholder={t('search_parts_placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
@@ -84,10 +91,10 @@ export default function PartsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 transition-colors">
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('part', 'Part')}</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('stock', 'Stock')}</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('unit_cost', 'Unit Cost')}</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('supplier', 'Supplier')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('part')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('stock')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('unit_cost')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('supplier')}</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">{t('actions')}</th>
                 </tr>
               </thead>
@@ -116,7 +123,7 @@ export default function PartsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-300">
-                      R$ {part.unit_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      {formatCurrency(part.unit_cost)}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                       {part.supplier}
@@ -180,13 +187,13 @@ export default function PartsPage() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('unit_cost', 'Unit Cost')}</p>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('unit_cost')}</p>
                     <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      R$ {part.unit_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      {formatCurrency(part.unit_cost)}
                     </p>
                   </div>
                   <div className="col-span-2 space-y-1">
-                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('supplier', 'Supplier')}</p>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('supplier')}</p>
                     <p className="text-sm text-slate-600 dark:text-slate-400">{part.supplier}</p>
                   </div>
                 </div>
@@ -196,7 +203,7 @@ export default function PartsPage() {
 
           {filteredParts.length === 0 && !loading && (
             <div className="p-20 text-center">
-              <p className="text-slate-500 dark:text-slate-400">{t('no_parts_found', 'No parts found.')}</p>
+              <p className="text-slate-500 dark:text-slate-400">{t('no_parts_found')}</p>
             </div>
           )}
         </div>
@@ -207,8 +214,8 @@ export default function PartsPage() {
           isOpen={!!partToDelete}
           onClose={() => setPartToDelete(null)}
           onConfirm={confirmDelete}
-          title={t('delete_part_title', 'Excluir Peça')}
-          message={t('delete_confirm', 'Tem certeza que deseja excluir esta peça?')}
+          title={t('delete_part_title')}
+          message={t('delete_confirm')}
           isLoading={isDeleting}
         />
       </div>

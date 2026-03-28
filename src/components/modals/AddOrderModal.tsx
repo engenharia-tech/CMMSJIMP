@@ -113,7 +113,7 @@ export function AddOrderModal({ isOpen, onClose, equipmentList = [], initialEqui
       let errorMessage = error.message || t('order_created_error');
       
       if (errorMessage.includes('schema cache') || errorMessage.includes('not found')) {
-        errorMessage = "Tabela 'maintenance_orders' não encontrada. Por favor, execute o script SQL no seu painel do Supabase.";
+        errorMessage = t('table_not_found', { table: 'maintenance_orders' });
       }
       
       toast.error(errorMessage);

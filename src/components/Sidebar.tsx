@@ -44,10 +44,10 @@ export function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   const handleLogout = async () => {
     try {
       await signOut();
-      toast.success("Logged out successfully");
+      toast.success(t('logout_success'));
       navigate('/login');
     } catch (error) {
-      toast.error("Failed to logout");
+      toast.error(t('logout_error'));
     }
   };
 
@@ -99,7 +99,7 @@ export function Sidebar({ user, isOpen, onClose }: SidebarProps) {
             {user?.user_metadata?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user?.user_metadata?.full_name || 'User'}</p>
+            <p className="text-sm font-medium truncate">{user?.user_metadata?.full_name || t('user')}</p>
             <p className="text-xs text-slate-400 truncate capitalize">{t(user?.role || 'operator')}</p>
           </div>
         </div>

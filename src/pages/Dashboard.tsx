@@ -17,7 +17,7 @@ import { Equipment, MaintenanceOrder } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function Dashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +109,10 @@ export default function Dashboard() {
           />
           <StatCard 
             title={t('maintenance_cost')} 
-            value={`R$ ${kpis.totalCost.toLocaleString()}`} 
+            value={new Intl.NumberFormat(i18n.language === 'pt' ? 'pt-BR' : 'en-US', {
+              style: 'currency',
+              currency: i18n.language === 'pt' ? 'BRL' : 'USD'
+            }).format(kpis.totalCost)} 
             icon={TrendingUp} 
             color="green"
             trend={{ value: 8, isPositive: true }}

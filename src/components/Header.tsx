@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 interface HeaderProps {
@@ -72,14 +72,14 @@ export function Header({ onMenuClick }: HeaderProps) {
                   <button 
                     onClick={markAllAsRead}
                     className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 transition-colors"
-                    title={t('mark_all_as_read', 'Marcar todas como lidas')}
+                    title={t('mark_all_as_read')}
                   >
                     <Check className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={clearNotifications}
                     className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded text-slate-400 transition-colors"
-                    title={t('clear_notifications', 'Limpar notificações')}
+                    title={t('clear_notifications')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -89,7 +89,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 {notifications.length === 0 ? (
                   <div className="p-8 text-center">
                     <Bell className="w-8 h-8 text-slate-200 dark:text-slate-700 mx-auto mb-2" />
-                    <p className="text-sm text-slate-400">{t('no_notifications', 'Nenhuma notificação')}</p>
+                    <p className="text-sm text-slate-400">{t('no_notifications')}</p>
                   </div>
                 ) : (
                   notifications.map((n) => (
@@ -111,7 +111,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                           {n.title}
                         </p>
                         <span className="text-[10px] text-slate-400">
-                          {format(n.timestamp, 'HH:mm', { locale: ptBR })}
+                          {format(n.timestamp, 'HH:mm', { 
+                            locale: i18n.language.startsWith('en') ? enUS : ptBR 
+                          })}
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{n.message}</p>

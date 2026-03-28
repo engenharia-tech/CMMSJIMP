@@ -93,7 +93,7 @@ export function QRCodeModal({ isOpen, onClose, equipment }: Props) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 transition-colors">
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 transition-colors">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('equipment_qrcode', 'QR Code do Equipamento')}</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('equipment_qrcode')}</h3>
           <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
             <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
           </button>
@@ -122,14 +122,14 @@ export function QRCodeModal({ isOpen, onClose, equipment }: Props) {
               className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95"
             >
               <Printer className="w-5 h-5" />
-              {t('print', 'Imprimir')}
+              {t('print')}
             </button>
             <button 
               onClick={handleDownload}
               className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"
             >
               <Download className="w-5 h-5" />
-              {t('download', 'Baixar')}
+              {t('download')}
             </button>
           </div>
         </div>

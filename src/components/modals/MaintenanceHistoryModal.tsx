@@ -70,7 +70,7 @@ export function MaintenanceHistoryModal({ isOpen, onClose, equipment }: Props) {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-10 h-10 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mb-4" />
-              <p className="text-slate-500 font-medium">{t('loading', 'Carregando...')}</p>
+              <p className="text-slate-500 font-medium">{t('loading')}</p>
             </div>
           ) : orders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -78,7 +78,7 @@ export function MaintenanceHistoryModal({ isOpen, onClose, equipment }: Props) {
                 <Clock className="w-8 h-8 text-slate-300 dark:text-slate-600" />
               </div>
               <h4 className="text-lg font-bold text-slate-900 dark:text-white">{t('no_history_found')}</h4>
-              <p className="text-slate-500 dark:text-slate-400 mt-1">{t('no_history_message', 'Este equipamento ainda não possui ordens de manutenção registradas.')}</p>
+              <p className="text-slate-500 dark:text-slate-400 mt-1">{t('no_history_message')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -115,7 +115,7 @@ export function MaintenanceHistoryModal({ isOpen, onClose, equipment }: Props) {
                           {order.completion_date && (
                             <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                               <CheckCircle2 className="w-3 h-3" />
-                              {t('completed_at', 'Concluído em')}: {format(new Date(order.completion_date), 'PPP', { locale })}
+                              {t('completed_at')}: {format(new Date(order.completion_date), 'PPP', { locale })}
                             </div>
                           )}
                         </div>
@@ -125,7 +125,7 @@ export function MaintenanceHistoryModal({ isOpen, onClose, equipment }: Props) {
                       <div className="text-right">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{t('total_cost')}</p>
                         <p className="text-lg font-black text-slate-900 dark:text-white">
-                          R$ {order.maintenance_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          R$ {order.maintenance_cost.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
                     </div>
@@ -143,12 +143,12 @@ export function MaintenanceHistoryModal({ isOpen, onClose, equipment }: Props) {
         </div>
 
         <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-600 transition-all active:scale-95"
-          >
-            {t('close', 'Fechar')}
-          </button>
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-600 transition-all active:scale-95"
+            >
+              {t('close')}
+            </button>
         </div>
       </div>
     </div>

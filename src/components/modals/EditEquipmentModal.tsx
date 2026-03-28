@@ -83,9 +83,9 @@ export function EditEquipmentModal({ isOpen, onClose, equipment }: Props) {
       setUploading(true);
       const url = await uploadEquipmentPhoto(file);
       setValue('photo_url', url);
-      toast.success(t('photo_uploaded', 'Photo uploaded successfully'));
+      toast.success(t('photo_uploaded'));
     } catch (error) {
-      toast.error(t('upload_error', 'Error uploading photo'));
+      toast.error(t('upload_error'));
       setPhotoPreview(null);
     } finally {
       setUploading(false);
@@ -96,10 +96,10 @@ export function EditEquipmentModal({ isOpen, onClose, equipment }: Props) {
     if (!equipment) return;
     try {
       await updateEquipment(equipment.id, data);
-      toast.success(t('equipment_updated_success', 'Equipment updated successfully'));
+      toast.success(t('equipment_updated_success'));
       onClose();
     } catch (error: any) {
-      toast.error(error.message || t('equipment_updated_error', 'Failed to update equipment'));
+      toast.error(error.message || t('equipment_updated_error'));
     }
   };
 
@@ -107,10 +107,10 @@ export function EditEquipmentModal({ isOpen, onClose, equipment }: Props) {
     if (!equipment) return;
     try {
       await deleteEquipment(equipment.id);
-      toast.success(t('equipment_obsolete_success', 'Equipamento marcado como obsoleto'));
+      toast.success(t('equipment_obsolete_success'));
       onClose();
     } catch (error: any) {
-      toast.error(error.message || t('equipment_obsolete_error', 'Erro ao marcar equipamento como obsoleto'));
+      toast.error(error.message || t('equipment_obsolete_error'));
     }
   };
 
@@ -120,7 +120,7 @@ export function EditEquipmentModal({ isOpen, onClose, equipment }: Props) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 transition-colors">
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 transition-colors">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('edit_equipment', 'Editar Equipamento')}</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('edit_equipment')}</h3>
           <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
             <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
           </button>
@@ -146,11 +146,11 @@ export function EditEquipmentModal({ isOpen, onClose, equipment }: Props) {
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('type')}</label>
               <select {...register('type')} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors">
-                <option value="Equipamento">{t('equipment_type')}</option>
-                <option value="Predial">{t('building_type')}</option>
-                <option value="Veículo">{t('vehicle_type')}</option>
-                <option value="TI/Escritório">{t('it_type')}</option>
-                <option value="Outros">{t('other_type')}</option>
+                <option value="equipment_type">{t('equipment_type')}</option>
+                <option value="building_type">{t('building_type')}</option>
+                <option value="vehicle_type">{t('vehicle_type')}</option>
+                <option value="it_type">{t('it_type')}</option>
+                <option value="other_type">{t('other_type')}</option>
               </select>
               {errors.type && <p className="text-xs text-red-500">{t('required')}</p>}
             </div>
@@ -228,7 +228,7 @@ export function EditEquipmentModal({ isOpen, onClose, equipment }: Props) {
                 <div className="flex-1 w-full space-y-4">
                   <div className="space-y-2">
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium italic">
-                      {t('photo_upload_hint', 'Upload a photo of the equipment to help with identification. Images are compressed automatically.')}
+                      {t('photo_upload_hint')}
                     </p>
                     <input 
                       type="file" 
@@ -260,7 +260,7 @@ export function EditEquipmentModal({ isOpen, onClose, equipment }: Props) {
               onClick={() => setShowDeleteConfirm(true)} 
               className="px-6 py-2 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
             >
-              {t('delete_equipment', 'Excluir Equipamento')}
+              {t('delete_equipment')}
             </button>
             <div className="flex gap-3">
               <button type="button" onClick={onClose} className="px-6 py-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">{t('cancel')}</button>
@@ -276,8 +276,8 @@ export function EditEquipmentModal({ isOpen, onClose, equipment }: Props) {
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleDelete}
-        title={t('confirm_obsolete_title', 'Marcar como Obsoleto')}
-        message={t('confirm_obsolete_message', 'Tem certeza que deseja marcar este equipamento como obsoleto? Ele não aparecerá mais na lista ativa, mas seu histórico será mantido.')}
+        title={t('confirm_obsolete_title')}
+        message={t('confirm_obsolete_message')}
       />
     </div>
   );

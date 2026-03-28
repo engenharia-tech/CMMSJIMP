@@ -27,7 +27,7 @@ const priorityColors = {
 };
 
 export default function MaintenanceOrdersPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
@@ -88,10 +88,10 @@ export default function MaintenanceOrdersPage() {
       // Update the equipment status back to active
       await updateEquipment(order.equipment_id, { status: 'active' });
 
-      toast.success(t('order_completed_success', 'Ordem finalizada com sucesso'));
+      toast.success(t('order_completed_success'));
     } catch (error) {
       console.error('Error completing order:', error);
-      toast.error(t('order_completed_error', 'Erro ao finalizar ordem'));
+      toast.error(t('order_completed_error'));
     }
   };
 
@@ -105,11 +105,11 @@ export default function MaintenanceOrdersPage() {
     setIsDeleting(true);
     try {
       await deleteOrder(orderToDelete);
-      toast.success(t('order_deleted_success', 'Ordem excluída com sucesso'));
+      toast.success(t('order_deleted_success'));
       setOrderToDelete(null);
     } catch (error) {
       console.error('Error deleting order:', error);
-      toast.error(t('order_deleted_error', 'Erro ao excluir ordem'));
+      toast.error(t('order_deleted_error'));
     } finally {
       setIsDeleting(false);
     }
@@ -118,6 +118,13 @@ export default function MaintenanceOrdersPage() {
   const handleEditOrder = (order: MaintenanceOrder) => {
     setSelectedOrder(order);
     setShowEditModal(true);
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat(i18n.language === 'pt' ? 'pt-BR' : 'en-US', {
+      style: 'currency',
+      currency: i18n.language === 'pt' ? 'BRL' : 'USD'
+    }).format(value);
   };
 
   return (
@@ -206,13 +213,13 @@ export default function MaintenanceOrdersPage() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      {order.created_by ? (profiles[order.created_by] || t('unknown_user', 'Usuário Desconhecido')) : '-'}
+                      {order.created_by ? (profiles[order.created_by] || t('unknown_user')) : '-'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                       {order.status !== 'completed' ? (
-                        `${differenceInDays(new Date(), new Date(order.request_date))} ${t('days', 'dias')}`
+                        `${differenceInDays(new Date(), new Date(order.request_date))} ${t('days')}`
                       ) : (
                         t('completed')
                       )}
@@ -244,7 +251,7 @@ export default function MaintenanceOrdersPage() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      {order.maintenance_cost ? `R$ ${order.maintenance_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+                      {order.maintenance_cost ? formatCurrency(order.maintenance_cost) : '-'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -264,7 +271,7 @@ export default function MaintenanceOrdersPage() {
                       <button 
                         onClick={() => handleEditOrder(order)}
                         className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
-                        title={t('edit_order_costs', 'Gerenciar Custos')}
+                        title={t('edit_order_costs')}
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
@@ -327,7 +334,7 @@ export default function MaintenanceOrdersPage() {
                     <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('open_duration')}</p>
                     <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                       {order.status !== 'completed' ? (
-                        `${differenceInDays(new Date(), new Date(order.request_date))} ${t('days', 'dias')}`
+                        `${differenceInDays(new Date(), new Date(order.request_date))} ${t('days')}`
                       ) : (
                         t('completed')
                       )}
@@ -336,7 +343,7 @@ export default function MaintenanceOrdersPage() {
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('maintenance_cost')}</p>
                     <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      {order.maintenance_cost ? `R$ ${order.maintenance_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+                      {order.maintenance_cost ? formatCurrency(order.maintenance_cost) : '-'}
                     </span>
                   </div>
                 </div>
@@ -356,7 +363,7 @@ export default function MaintenanceOrdersPage() {
                     className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-bold transition-colors"
                   >
                     <MoreVertical className="w-4 h-4" />
-                    {t('edit_order_costs', 'Custos')}
+                    {t('edit_order_costs')}
                   </button>
                   {userRole === 'admin' && (
                     <button 
@@ -393,8 +400,8 @@ export default function MaintenanceOrdersPage() {
           isOpen={!!orderToDelete}
           onClose={() => setOrderToDelete(null)}
           onConfirm={confirmDeleteOrder}
-          title={t('confirm_delete_order_title', 'Excluir Ordem')}
-          message={t('confirm_delete_order_message', 'Tem certeza que deseja excluir esta ordem de manutenção? Esta ação não pode ser desfeita.')}
+          title={t('confirm_delete_order_title')}
+          message={t('confirm_delete_order_message')}
           isLoading={isDeleting}
         />
       </div>

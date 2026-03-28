@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function EditOrderModal({ isOpen, onClose, order }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [parts, setParts] = useState<Part[]>([]);
   const [selectedParts, setSelectedParts] = useState<OrderPart[]>(order.parts_list || []);
   const [laborHours, setLaborHours] = useState<number>(order.labor_hours || 0);
@@ -104,15 +104,15 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
 
       if (conclude) {
         await updateEquipment(order.equipment_id, { status: 'active' });
-        toast.success(t('order_completed_success', 'Ordem finalizada com sucesso'));
+        toast.success(t('order_completed_success'));
       } else {
-        toast.success(t('order_updated_success', 'Ordem atualizada com sucesso'));
+        toast.success(t('order_updated_success'));
       }
       
       onClose();
     } catch (error) {
       console.error('Error updating order:', error);
-      toast.error(t('order_updated_error', 'Erro ao atualizar ordem'));
+      toast.error(t('order_updated_error'));
     } finally {
       setLoading(false);
     }
@@ -126,15 +126,22 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
     setLoading(true);
     try {
       await deleteOrder(order.id);
-      toast.success(t('order_deleted_success', 'Ordem excluída com sucesso'));
+      toast.success(t('order_deleted_success'));
       setShowDeleteConfirm(false);
       onClose();
     } catch (error) {
       console.error('Error deleting order:', error);
-      toast.error(t('order_deleted_error', 'Erro ao excluir ordem'));
+      toast.error(t('order_deleted_error'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat(i18n.language === 'pt' ? 'pt-BR' : 'en-US', {
+      style: 'currency',
+      currency: i18n.language === 'pt' ? 'BRL' : 'USD'
+    }).format(value);
   };
 
   if (!isOpen) return null;
@@ -144,7 +151,7 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
       <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
-            <h3 className="text-xl font-bold text-slate-900">{t('manage_order_costs', 'Gerenciar Custos da Ordem')}</h3>
+            <h3 className="text-xl font-bold text-slate-900">{t('manage_order_costs')}</h3>
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">{order.order_number}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
@@ -159,11 +166,11 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
               <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
                 <Clock className="w-4 h-4" />
               </div>
-              <h4 className="font-bold text-slate-900">{t('labor', 'Mão de Obra')}</h4>
+              <h4 className="font-bold text-slate-900">{t('labor')}</h4>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 rounded-2xl border border-slate-100">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('labor_hours', 'Horas de Trabalho')}</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('labor_hours')}</label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input 
@@ -176,10 +183,10 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('labor_cost', 'Custo de Mão de Obra')}</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('labor_cost')}</label>
                 <div className="h-10 flex items-center px-4 bg-white border border-slate-200 rounded-xl font-bold text-slate-700">
                   <DollarSign className="w-4 h-4 text-slate-400 mr-1" />
-                  {laborCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {laborCost.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
                   <span className="ml-2 text-[10px] text-slate-400 font-normal">({laborRate}/h)</span>
                 </div>
               </div>
@@ -192,12 +199,12 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
               <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center text-green-600">
                 <ClipboardList className="w-4 h-4" />
               </div>
-              <h4 className="font-bold text-slate-900">{t('action_taken', 'Ações Realizadas')}</h4>
+              <h4 className="font-bold text-slate-900">{t('action_taken')}</h4>
             </div>
             <textarea 
               value={actionTaken}
               onChange={(e) => setActionTaken(e.target.value)}
-              placeholder={t('action_taken_placeholder', 'Descreva o que foi feito...')}
+              placeholder={t('action_taken_placeholder')}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium min-h-[100px]"
             />
           </div>
@@ -209,7 +216,7 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
                 <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600">
                   <Package className="w-4 h-4" />
                 </div>
-                <h4 className="font-bold text-slate-900">{t('parts', 'Peças')}</h4>
+                <h4 className="font-bold text-slate-900">{t('parts')}</h4>
               </div>
               <select 
                 onChange={(e) => {
@@ -220,9 +227,9 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
                 }}
                 className="px-4 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/20"
               >
-                <option value="">+ {t('add_part', 'Adicionar Peça')}</option>
+                <option value="">+ {t('add_part')}</option>
                 {parts.map(p => (
-                  <option key={p.id} value={p.id}>{p.part_name} ({p.part_code}) - {p.unit_cost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</option>
+                  <option key={p.id} value={p.id}>{p.part_name} ({p.part_code}) - {p.unit_cost.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { style: 'currency', currency: i18n.language === 'pt' ? 'BRL' : 'USD' })}</option>
                 ))}
               </select>
             </div>
@@ -231,10 +238,10 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
               <table className="w-full text-left border-collapse min-w-[500px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">{t('part', 'Peça')}</th>
-                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">{t('quantity', 'Qtd')}</th>
-                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">{t('unit_cost', 'Custo Unit.')}</th>
-                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">{t('total', 'Total')}</th>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">{t('part')}</th>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 text-center">{t('quantity')}</th>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">{t('unit_cost')}</th>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">{t('total')}</th>
                     <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right"></th>
                   </tr>
                 </thead>
@@ -255,10 +262,10 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-xs font-medium text-slate-500">{p.unit_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-xs font-medium text-slate-500">{p.unit_cost.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}</span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-sm font-bold text-slate-900">{(p.unit_cost * p.quantity).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-sm font-bold text-slate-900">{(p.unit_cost * p.quantity).toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}</span>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button 
@@ -273,15 +280,15 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
                   {selectedParts.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-xs font-medium italic">
-                        {t('no_parts_added', 'Nenhuma peça adicionada a esta ordem.')}
+                        {t('no_parts_added')}
                       </td>
                     </tr>
                   )}
                 </tbody>
                 <tfoot className="bg-slate-50/50 font-bold border-t border-slate-200">
                   <tr>
-                    <td colSpan={3} className="px-4 py-3 text-right text-xs uppercase tracking-wider text-slate-500">{t('total_parts_cost', 'Total Peças')}</td>
-                    <td className="px-4 py-3 text-right text-slate-900">{partsCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                    <td colSpan={3} className="px-4 py-3 text-right text-xs uppercase tracking-wider text-slate-500">{t('total_parts_cost')}</td>
+                    <td className="px-4 py-3 text-right text-slate-900">{partsCost.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}</td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -294,17 +301,17 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
         <div className="p-6 md:p-8 bg-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-wrap justify-center md:justify-start gap-4 md:gap-8 w-full md:w-auto">
             <div className="text-center md:text-left">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t('labor', 'Mão de Obra')}</p>
-              <p className="text-lg font-bold">R$ {laborCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t('labor')}</p>
+              <p className="text-lg font-bold">{formatCurrency(laborCost)}</p>
             </div>
             <div className="text-center md:text-left">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t('parts', 'Peças')}</p>
-              <p className="text-lg font-bold">R$ {partsCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{t('parts')}</p>
+              <p className="text-lg font-bold">{formatCurrency(partsCost)}</p>
             </div>
             <div className="hidden md:block h-10 w-px bg-white/10" />
             <div className="text-center md:text-left w-full md:w-auto pt-4 md:pt-0 border-t border-white/10 md:border-0">
-              <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-1">{t('total_cost', 'Custo Total')}</p>
-              <p className="text-2xl font-black text-blue-400">R$ {totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-1">{t('total_cost')}</p>
+              <p className="text-2xl font-black text-blue-400">{formatCurrency(totalCost)}</p>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
@@ -327,7 +334,7 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
                 disabled={loading}
                 className="w-full sm:w-auto px-6 py-3 bg-slate-800 text-white rounded-xl font-bold shadow-lg hover:bg-slate-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {t('save_costs', 'Salvar')}
+                {t('save_costs')}
               </button>
               <button 
                 onClick={() => handleSave(true)}
@@ -336,7 +343,7 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
               >
                 {loading && <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />}
                 <CheckCircle2 className="w-4 h-4" />
-                {t('conclude_order', 'Concluir')}
+                {t('conclude_order')}
               </button>
             </div>
           </div>
@@ -347,8 +354,8 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={confirmDelete}
-        title={t('confirm_delete_order_title', 'Excluir Ordem')}
-        message={t('confirm_delete_order_message', 'Tem certeza que deseja excluir esta ordem de manutenção? Esta ação não pode ser desfeita.')}
+        title={t('confirm_delete_order_title')}
+        message={t('confirm_delete_order_message')}
         isLoading={loading}
       />
     </div>

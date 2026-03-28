@@ -5,13 +5,13 @@ import { getOrders, getEquipment, getSettings } from '@/services/maintenanceServ
 import { MaintenanceOrder, Equipment, ActionType, Settings } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { format, isAfter, addDays, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { ptBR, enUS } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { AddOrderModal } from '@/components/modals/AddOrderModal';
 import { cn } from '@/lib/utils';
 
 export default function MaintenancePlanningPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -21,6 +21,8 @@ export default function MaintenancePlanningPage() {
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
+
+  const currentLocale = i18n.language.startsWith('en') ? enUS : ptBR;
 
   useEffect(() => {
     const unsubOrders = getOrders((data) => {
@@ -63,9 +65,12 @@ export default function MaintenancePlanningPage() {
     
     const nextDate = lastOrder ? addDays(parseISO(lastOrder.request_date), interval) : addDays(new Date(), interval);
     
+    const isNever = !lastOrder;
+    
     return {
       ...e,
-      last_maintenance: lastOrder?.request_date || t('never', 'Never'),
+      last_maintenance: lastOrder?.request_date || t('never'),
+      is_never: isNever,
       next_maintenance: activeTab === 'corrective' ? format(new Date(), 'yyyy-MM-dd') : format(nextDate, 'yyyy-MM-dd'),
       is_overdue: activeTab === 'corrective' ? true : (interval > 0 ? isAfter(new Date(), nextDate) : false)
     };
@@ -104,7 +109,7 @@ export default function MaintenancePlanningPage() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('maintenance_planning')}</h2>
-            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('manage_maintenance_types', 'Manage preventive, predictive and corrective actions.')}</p>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('manage_maintenance_types')}</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
             <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
@@ -114,7 +119,7 @@ export default function MaintenancePlanningPage() {
                 className="bg-transparent text-sm font-bold text-slate-600 dark:text-slate-400 outline-none flex-1"
               >
                 {Array.from({ length: 12 }).map((_, i) => (
-                  <option key={i} value={i} className="dark:bg-slate-900">{format(new Date(2024, i, 1), 'MMMM', { locale: ptBR })}</option>
+                  <option key={i} value={i} className="dark:bg-slate-900">{format(new Date(2024, i, 1), 'MMMM', { locale: currentLocale })}</option>
                 ))}
               </select>
               <select 
@@ -161,7 +166,7 @@ export default function MaintenancePlanningPage() {
               <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
                 <Calendar className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-slate-900 dark:text-white">{t('next_7_days', 'Next 7 Days')}</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white">{t('next_7_days')}</h3>
             </div>
             <p className="text-3xl font-black text-slate-900 dark:text-white">
               {upcomingMaintenance.filter(m => {
@@ -175,7 +180,7 @@ export default function MaintenancePlanningPage() {
               <div className="w-10 h-10 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center text-red-600 dark:text-red-400">
                 <AlertTriangle className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-slate-900 dark:text-white">{t('overdue', 'Overdue')}</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white">{t('overdue')}</h3>
             </div>
             <p className="text-3xl font-black text-red-600 dark:text-red-400">
               {upcomingMaintenance.filter(m => m.is_overdue).length}
@@ -186,7 +191,7 @@ export default function MaintenancePlanningPage() {
               <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400">
                 <CheckCircle className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-slate-900 dark:text-white">{t('completed_month', 'Completed (Month)')}</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white">{t('completed_month')}</h3>
             </div>
             <p className="text-3xl font-black text-slate-900 dark:text-white">
               {orders.filter(o => o.status === 'completed' && o.action_type === activeTab && new Date(o.request_date).getMonth() === new Date().getMonth()).length}
@@ -216,22 +221,22 @@ export default function MaintenancePlanningPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                      {item.last_maintenance}
+                      {item.is_never ? t('never') : format(parseISO(item.last_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`text-sm font-bold ${item.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                        {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: ptBR })}
+                        {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         {item.is_overdue ? (
                           <span className="px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
-                            {t('overdue', 'Atrasada')}
+                            {t('overdue')}
                           </span>
                         ) : (
                           <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
-                            {t('scheduled', 'Agendada')}
+                            {t('scheduled')}
                           </span>
                         )}
                       </div>
@@ -262,11 +267,11 @@ export default function MaintenancePlanningPage() {
                   </div>
                   {item.is_overdue ? (
                     <span className="px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
-                      {t('overdue', 'Atrasada')}
+                      {t('overdue')}
                     </span>
                   ) : (
                     <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
-                      {t('scheduled', 'Agendada')}
+                      {t('scheduled')}
                     </span>
                   )}
                 </div>
@@ -274,12 +279,12 @@ export default function MaintenancePlanningPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('last_maintenance')}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{item.last_maintenance}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{item.is_never ? t('never') : format(parseISO(item.last_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('next_maintenance')}</p>
                     <p className={`text-sm font-bold ${item.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                      {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: ptBR })}
+                      {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}
                     </p>
                   </div>
                 </div>
