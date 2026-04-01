@@ -1,4 +1,4 @@
-import { supabase, handleSupabaseError } from '../supabase';
+import { supabase, handleSupabaseError, isSupabaseConfigured } from '../supabase';
 import { Equipment, MaintenanceOrder, Part } from '../types';
 
 // Equipment Services
@@ -31,13 +31,37 @@ export const getEquipment = (callback: (data: Equipment[]) => void) => {
 };
 
 export const addEquipment = async (data: Omit<Equipment, 'id'>) => {
-  console.log('maintenanceService: addEquipment called with:', data);
-  const { error } = await supabase.from('equipment').insert(data);
-  if (error) {
-    console.error('maintenanceService: addEquipment error:', error);
-    handleSupabaseError(error, 'CREATE equipment');
+  if (!isSupabaseConfigured) {
+    throw new Error('O Supabase não está configurado. Por favor, verifique as variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.');
   }
-  console.log('maintenanceService: addEquipment success');
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado. Por favor, faça login novamente.');
+  }
+
+  console.log('maintenanceService: addEquipment called');
+  
+  // Create a timeout to prevent hanging
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error('Timeout: A conexão com o banco de dados demorou muito. Verifique sua internet ou se o Supabase está configurado corretamente.')), 15000)
+  );
+
+  try {
+    const { error } = await Promise.race([
+      supabase.from('equipment').insert(data),
+      timeoutPromise
+    ]) as any;
+    
+    if (error) {
+      console.error('maintenanceService: addEquipment error:', error.message || error);
+      handleSupabaseError(error, 'CREATE equipment');
+    }
+    console.log('maintenanceService: addEquipment success');
+  } catch (err: any) {
+    console.error('maintenanceService: addEquipment exception:', err.message || 'Unknown error');
+    throw err;
+  }
 };
 
 export const updateEquipment = async (id: string, data: Partial<Equipment>) => {
@@ -128,31 +152,50 @@ export const getOrders = (callback: (data: MaintenanceOrder[]) => void) => {
 };
 
 export const addOrder = async (data: Omit<MaintenanceOrder, 'id'>) => {
-  console.log('maintenanceService: addOrder called with:', data);
-  
-  // Get next sequential order number
-  const { data: nextNumber, error: seqError } = await supabase.rpc('get_next_order_number');
-  if (seqError) {
-    console.error('Error generating order number:', seqError);
+  if (!isSupabaseConfigured) {
+    throw new Error('O Supabase não está configurado.');
   }
 
-  // Get current user
   const { data: { user } } = await supabase.auth.getUser();
-
-  const { error } = await supabase.from('maintenance_orders').insert({
-    ...data,
-    order_number: nextNumber || data.order_number,
-    created_by: user?.id,
-    labor_hours: data.labor_hours || 0,
-    labor_cost: data.labor_cost || 0,
-    parts_cost: data.parts_cost || 0,
-    maintenance_cost: data.maintenance_cost || 0
-  });
-  if (error) {
-    console.error('maintenanceService: addOrder error:', error);
-    handleSupabaseError(error, 'CREATE maintenance_orders');
+  if (!user) {
+    throw new Error('Usuário não autenticado.');
   }
-  console.log('maintenanceService: addOrder success');
+
+  console.log('maintenanceService: addOrder called');
+  
+  // Create a timeout to prevent hanging
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error('Timeout: A conexão com o banco de dados demorou muito.')), 15000)
+  );
+
+  try {
+    // Get next sequential order number
+    const { data: nextNumber, error: seqError } = await supabase.rpc('get_next_order_number');
+    if (seqError) {
+      console.error('Error generating order number:', seqError.message || seqError);
+    }
+
+    const insertPromise = supabase.from('maintenance_orders').insert({
+      ...data,
+      order_number: nextNumber || data.order_number,
+      created_by: user?.id,
+      labor_hours: data.labor_hours || 0,
+      labor_cost: data.labor_cost || 0,
+      parts_cost: data.parts_cost || 0,
+      maintenance_cost: data.maintenance_cost || 0
+    });
+
+    const { error } = await Promise.race([insertPromise, timeoutPromise]) as any;
+    
+    if (error) {
+      console.error('maintenanceService: addOrder error:', error.message || error);
+      handleSupabaseError(error, 'CREATE maintenance_orders');
+    }
+    console.log('maintenanceService: addOrder success');
+  } catch (err: any) {
+    console.error('maintenanceService: addOrder exception:', err.message || 'Unknown error');
+    throw err;
+  }
 };
 
 export const updateOrder = async (id: string, data: Partial<MaintenanceOrder>) => {

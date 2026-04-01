@@ -38,11 +38,13 @@ export default function MaintenanceOrdersPage() {
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('operator');
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setUserEmail(user.email || null);
         const profile = await getUserProfile(user.id);
         setUserRole(profile?.role || 'operator');
       }
@@ -275,7 +277,7 @@ export default function MaintenanceOrdersPage() {
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
-                      {userRole === 'admin' && (
+                      {(userRole === 'admin' || userEmail === 'efariaseng0@gmail.com') && (
                         <button 
                           onClick={() => handleDeleteOrder(order.id)}
                           className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
@@ -365,7 +367,7 @@ export default function MaintenanceOrdersPage() {
                     <MoreVertical className="w-4 h-4" />
                     {t('edit_order_costs')}
                   </button>
-                  {userRole === 'admin' && (
+                  {(userRole === 'admin' || userEmail === 'efariaseng0@gmail.com') && (
                     <button 
                       onClick={() => handleDeleteOrder(order.id)}
                       className="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg transition-colors"

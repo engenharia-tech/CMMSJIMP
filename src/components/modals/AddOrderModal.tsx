@@ -121,7 +121,9 @@ export function AddOrderModal({ isOpen, onClose, equipmentList = [], initialEqui
   };
 
   const onInvalid = (errors: any) => {
-    console.warn('AddOrderModal: Form validation errors:', errors);
+    // Only log the error messages to avoid circular structure issues with DOM elements
+    const errorMessages = Object.keys(errors).map(key => `${key}: ${errors[key]?.message}`);
+    console.warn('AddOrderModal: Form validation errors:', errorMessages);
     toast.error(t('check_form_errors'));
   };
 
