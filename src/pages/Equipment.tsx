@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, MoreVertical, Wrench, AlertTriangle, CheckCircle, Clock, Edit2, X, History, QrCode, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getEquipment, hardDeleteEquipment } from '@/services/maintenanceService';
@@ -12,6 +13,7 @@ import { EditEquipmentModal } from '@/components/modals/EditEquipmentModal';
 import { AddOrderModal } from '@/components/modals/AddOrderModal';
 import { MaintenanceHistoryModal } from '@/components/modals/MaintenanceHistoryModal';
 import { QRCodeModal } from '@/components/modals/QRCodeModal';
+import { QRScannerModal } from '@/components/modals/QRScannerModal';
 import { ConfirmationModal } from '@/components/modals/ConfirmationModal';
 import { toast } from 'sonner';
 
@@ -31,10 +33,13 @@ const statusIcons = {
 
 export default function EquipmentPage() {
   const { t } = useTranslation();
+  const { id: deepLinkId } = useParams();
+  const navigate = useNavigate();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [maintenanceCounts, setMaintenanceCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showScannerModal, setShowScannerModal] = useState(false);
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
@@ -64,6 +69,17 @@ export default function EquipmentPage() {
     const unsub = getEquipment(async (data) => {
       setEquipment(data);
       setLoading(false);
+      
+      // Handle deep link if present
+      if (deepLinkId && data.length > 0) {
+        const found = data.find(e => e.id === deepLinkId);
+        if (found) {
+          setSelectedEquipmentForHistory(found);
+          setShowHistoryModal(true);
+          // Clear the URL without refreshing to keep the UI clean
+          navigate('/equipment', { replace: true });
+        }
+      }
       
       // Fetch maintenance counts for each equipment
       const counts: Record<string, number> = {};
@@ -101,6 +117,22 @@ export default function EquipmentPage() {
     return true;
   });
 
+  const handleScan = (decodedText: string) => {
+    setShowScannerModal(false);
+    // Try to extract equipment ID from URL
+    // Format: https://.../equipment/ID
+    const match = decodedText.match(/\/equipment\/([a-f0-9-]+)/i);
+    const id = match ? match[1] : decodedText;
+    
+    const found = equipment.find(e => e.id === id || e.registration_number === id);
+    if (found) {
+      setSelectedEquipmentForHistory(found);
+      setShowHistoryModal(true);
+    } else {
+      toast.error(t('equipment_not_found', 'Equipment not found'));
+    }
+  };
+
   return (
     <ErrorBoundary>
       <div className="space-y-8">
@@ -130,13 +162,22 @@ export default function EquipmentPage() {
                 {t('equipment_reports')}
               </button>
             </div>
-            <button 
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"
-            >
-              <Plus className="w-5 h-5" />
-              {t('add_equipment')}
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button 
+                onClick={() => setShowScannerModal(true)}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-95"
+              >
+                <QrCode className="w-5 h-5" />
+                {t('scan_qrcode', 'Scan QR Code')}
+              </button>
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"
+              >
+                <Plus className="w-5 h-5" />
+                {t('add_equipment')}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -301,7 +342,7 @@ export default function EquipmentPage() {
                           className="p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 cursor-pointer hover:bg-white dark:hover:bg-slate-700 transition-colors"
                         >
                           <QRCodeSVG 
-                            value={`cmms-jimp://equipment/${item.id}`} 
+                            value={`${window.location.origin}/equipment/${item.id}`} 
                             size={24} 
                             bgColor="transparent"
                             fgColor="currentColor"
@@ -433,6 +474,12 @@ export default function EquipmentPage() {
 
 
         <AddEquipmentModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
+        <QRScannerModal 
+          isOpen={showScannerModal} 
+          onClose={() => setShowScannerModal(false)}
+          onScan={handleScan}
+        />
+
         <EditEquipmentModal 
           isOpen={!!editingEquipment} 
           onClose={() => setEditingEquipment(null)} 

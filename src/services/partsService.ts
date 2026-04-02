@@ -1,17 +1,23 @@
 import { supabase, handleSupabaseError } from '../supabase';
 import { Part } from '../types';
 
-export const getParts = (callback: (data: Part[]) => void) => {
-  const fetchParts = async () => {
-    const { data, error } = await supabase
-      .from('parts')
-      .select('*')
-      .order('part_name', { ascending: true });
-    
-    if (error) handleSupabaseError(error, 'LIST parts');
-    callback(data || []);
-  };
+let partsSubscribers: ((data: Part[]) => void)[] = [];
 
+export const fetchParts = async () => {
+  const { data, error } = await supabase
+    .from('parts')
+    .select('*')
+    .order('part_name', { ascending: true });
+  
+  if (error) handleSupabaseError(error, 'LIST parts');
+  
+  const result = data || [];
+  partsSubscribers.forEach(cb => cb(result));
+  return result;
+};
+
+export const getParts = (callback: (data: Part[]) => void) => {
+  partsSubscribers.push(callback);
   fetchParts();
 
   const subscription = supabase
@@ -20,21 +26,25 @@ export const getParts = (callback: (data: Part[]) => void) => {
     .subscribe();
 
   return () => {
-    subscription.unsubscribe();
+    partsSubscribers = partsSubscribers.filter(cb => cb !== callback);
+    supabase.removeChannel(subscription);
   };
 };
 
 export const addPart = async (data: Omit<Part, 'id'>) => {
   const { error } = await supabase.from('parts').insert(data);
   if (error) handleSupabaseError(error, 'CREATE parts');
+  await fetchParts();
 };
 
 export const updatePart = async (id: string, data: Partial<Part>) => {
   const { error } = await supabase.from('parts').update(data).eq('id', id);
   if (error) handleSupabaseError(error, 'UPDATE parts');
+  await fetchParts();
 };
 
 export const deletePart = async (id: string) => {
   const { error } = await supabase.from('parts').delete().eq('id', id);
   if (error) handleSupabaseError(error, 'DELETE parts');
+  await fetchParts();
 };

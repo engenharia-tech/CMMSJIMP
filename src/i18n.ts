@@ -322,6 +322,13 @@ const resources = {
       "generate_backup": "Generate System Backup",
       "backup_started": "System backup started...",
       "days": "Days",
+      "scan_qrcode": "Scan QR Code",
+      "camera_scanner": "Camera Scanner",
+      "position_qr_code": "Position the QR code inside the box to scan",
+      "equipment_not_found": "Equipment not found",
+      "initializing_camera": "Initializing camera...",
+      "camera_error": "Camera Error",
+      "retry": "Retry",
     }
   },
   pt: {
@@ -643,6 +650,13 @@ const resources = {
       "generate_backup": "Gerar Backup do Sistema",
       "backup_started": "Backup do sistema iniciado...",
       "days": "Dias",
+      "scan_qrcode": "Escanear QR Code",
+      "camera_scanner": "Scanner de Câmera",
+      "position_qr_code": "Posicione o QR code dentro do quadro para escanear",
+      "equipment_not_found": "Equipamento não encontrado",
+      "initializing_camera": "Inicializando câmera...",
+      "camera_error": "Erro na Câmera",
+      "retry": "Tentar Novamente",
     }
   }
 };

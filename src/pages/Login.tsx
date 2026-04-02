@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LogIn, ShieldCheck, Zap, BrainCircuit, UserPlus, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { signInWithEmail, signUpWithEmail, resetPasswordForEmail } from '@/supabase';
@@ -10,6 +11,8 @@ import { useTranslation } from 'react-i18next';
 
 export default function Login() {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -62,6 +65,8 @@ export default function Login() {
       
       if (result) {
         toast.success(t('logged_in_success'));
+        const from = (location.state as any)?.from || '/';
+        navigate(from, { replace: true });
       }
     } catch (error: any) {
       console.error('Login error in component:', error);

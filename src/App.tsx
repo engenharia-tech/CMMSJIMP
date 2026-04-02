@@ -129,12 +129,13 @@ export default function App() {
             {!user ? (
               <>
                 <Route path="/login" element={<Login />} />
-                <Route path="*" element={<Navigate to="/login" replace />} />
+                <Route path="*" element={<Navigate to="/login" state={{ from: window.location.pathname }} replace />} />
               </>
             ) : (
               <Route element={<Layout user={user} />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/equipment" element={<EquipmentPage />} />
+                <Route path="/equipment/:id" element={<EquipmentPage />} />
                 <Route path="/orders" element={<MaintenanceOrdersPage />} />
                 <Route path="/preventive" element={<MaintenancePlanningPage />} />
                 <Route path="/parts" element={<PartsPage />} />

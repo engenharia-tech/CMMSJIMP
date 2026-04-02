@@ -103,7 +103,7 @@ export function QRCodeModal({ isOpen, onClose, equipment }: Props) {
           <div ref={printRef} className="p-4 bg-white rounded-2xl shadow-inner border border-slate-100">
             <QRCodeSVG 
               id="equipment-qrcode"
-              value={`cmms-jimp://equipment/${equipment.id}`} 
+              value={`${window.location.origin}/equipment/${equipment.id}`} 
               size={256} 
               level="H"
               includeMargin={true}
