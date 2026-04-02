@@ -11,7 +11,8 @@ import {
   Package,
   Users,
   LogOut,
-  X
+  X,
+  QrCode
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Logo } from './Logo';
@@ -23,6 +24,7 @@ const navItems = [
   { icon: LayoutDashboard, label: 'dashboard', path: '/' },
   { icon: Wrench, label: 'equipment', path: '/equipment' },
   { icon: ClipboardList, label: 'maintenance_orders', path: '/orders' },
+  { icon: QrCode, label: 'scanner', path: '/orders?view=scanner' },
   { icon: Calendar, label: 'maintenance_planning', path: '/preventive' },
   { icon: Package, label: 'parts', path: '/parts' },
   { icon: DollarSign, label: 'costs', path: '/costs' },

@@ -7,8 +7,10 @@ import {
   TrendingUp, 
   TrendingDown, 
   BarChart3,
-  Zap
+  Zap,
+  QrCode
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { KPIChart } from '@/components/dashboard/KPIChart';
@@ -81,6 +83,13 @@ export default function Dashboard() {
             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('real_time_kpis')}</p>
           </div>
           <div className="flex items-center gap-3">
+            <Link 
+              to="/orders?view=scanner"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-bold shadow-lg hover:opacity-90 transition-all active:scale-95"
+            >
+              <QrCode className="w-4 h-4" />
+              {t('scanner')}
+            </Link>
             <div className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 shadow-sm transition-colors">
               {t('last_30_days')}
             </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, MoreVertical, Wrench, AlertTriangle, CheckCircle, Clock, Edit2, X, History, QrCode, Trash2 } from 'lucide-react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Plus, Search, Filter, MoreVertical, Wrench, AlertTriangle, CheckCircle, Clock, Edit2, X, History, QrCode, Trash2, BarChart3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getEquipment, hardDeleteEquipment } from '@/services/maintenanceService';
 import { supabase, getUserProfile } from '../supabase';
@@ -50,11 +50,24 @@ export default function EquipmentPage() {
   const [equipmentToDelete, setEquipmentToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('operator');
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [view, setView] = useState<'grid' | 'reports'>('grid');
+  const [view, setView] = useState<'grid' | 'reports' | 'scanner'>((searchParams.get('view') as 'grid' | 'reports' | 'scanner') || 'grid');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showObsolete, setShowObsolete] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'scanner' || viewParam === 'grid' || viewParam === 'reports') {
+      setView(viewParam as 'grid' | 'reports' | 'scanner');
+    }
+  }, [searchParams]);
+
+  const handleSetView = (newView: 'grid' | 'reports' | 'scanner') => {
+    setView(newView);
+    setSearchParams({ view: newView });
+  };
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -142,9 +155,9 @@ export default function EquipmentPage() {
             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('manage_assets')}</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
+            <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors overflow-x-auto">
               <button 
-                onClick={() => setView('grid')}
+                onClick={() => handleSetView('grid')}
                 className={cn(
                   "flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all",
                   view === 'grid' ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -153,13 +166,23 @@ export default function EquipmentPage() {
                 {t('grid')}
               </button>
               <button 
-                onClick={() => setView('reports')}
+                onClick={() => handleSetView('reports')}
                 className={cn(
                   "flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all",
                   view === 'reports' ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                 )}
               >
                 {t('equipment_reports')}
+              </button>
+              <button 
+                onClick={() => handleSetView('scanner')}
+                className={cn(
+                  "flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
+                  view === 'scanner' ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                )}
+              >
+                <QrCode className="w-4 h-4" />
+                {t('scanner')}
               </button>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -181,7 +204,23 @@ export default function EquipmentPage() {
           </div>
         </div>
 
-        {view === 'grid' ? (
+        {view === 'scanner' ? (
+          <div className="flex flex-col items-center justify-center py-12 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm transition-colors text-center p-8">
+            <div className="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-3xl flex items-center justify-center mb-6 border border-blue-100 dark:border-blue-900/30">
+              <QrCode className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-2">Check-up via QR Code</h3>
+            <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8">
+              Escaneie o código da máquina para verificar instantaneamente o status de operação e manutenções pendentes.
+            </p>
+            <button 
+              onClick={() => setShowScannerModal(true)}
+              className="px-12 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 shadow-xl"
+            >
+              Abrir Câmera
+            </button>
+          </div>
+        ) : (
           <>
             {/* Filters and Search */}
             <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
@@ -227,22 +266,22 @@ export default function EquipmentPage() {
                 <select 
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
-                  className="px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-medium text-slate-600 dark:text-slate-400 transition-colors"
+                  className="bg-transparent text-sm font-bold text-slate-600 dark:text-slate-400 focus:outline-none cursor-pointer"
                 >
                   <option value="all">{t('all_types')}</option>
-                  <option value="equipment_type">{t('equipment_type')}</option>
-                  <option value="building_type">{t('building_type')}</option>
-                  <option value="vehicle_type">{t('vehicle_type')}</option>
-                  <option value="it_type">{t('it_type')}</option>
-                  <option value="other_type">{t('other_type')}</option>
+                  <option value="equipment">{t('equipment_type')}</option>
+                  <option value="building">{t('building_type')}</option>
+                  <option value="vehicle">{t('vehicle_type')}</option>
+                  <option value="it">{t('it_type')}</option>
+                  <option value="other">{t('other_type')}</option>
                 </select>
               </div>
             </div>
           </div>
 
-          {/* Equipment Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredEquipment.map((item) => (
+          {view === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredEquipment.map((item) => (
               <div key={item.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden hover:shadow-md transition-all group">
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
@@ -355,8 +394,7 @@ export default function EquipmentPage() {
                 </div>
               ))}
             </div>
-          </>
-        ) : (
+          ) : (
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -461,6 +499,8 @@ export default function EquipmentPage() {
             </div>
           </div>
         )}
+      </>
+    )}
 
         {equipment.length === 0 && !loading && (
           <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 transition-colors">

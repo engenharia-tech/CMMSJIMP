@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, ClipboardList, AlertCircle, CheckCircle2, Clock, MoreVertical } from 'lucide-react';
+import { Plus, Search, Filter, ClipboardList, AlertCircle, CheckCircle2, Clock, MoreVertical, QrCode } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getOrders, getEquipment, updateOrder, updateEquipment, deleteOrder } from '@/services/maintenanceService';
 import { MaintenanceOrder, Equipment, UserRole } from '@/types';
@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { supabase, getUserProfile } from '../supabase';
 import { Trash2 } from 'lucide-react';
 import { ConfirmationModal } from '@/components/modals/ConfirmationModal';
+import { QRScannerModal } from '@/components/modals/QRScannerModal';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const statusColors = {
   open: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30',
@@ -28,17 +30,33 @@ const priorityColors = {
 
 export default function MaintenanceOrdersPage() {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showScannerModal, setShowScannerModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<MaintenanceOrder | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('operator');
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [view, setView] = useState<'list' | 'scanner'>((searchParams.get('view') as 'list' | 'scanner') || 'list');
+
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'scanner' || viewParam === 'list') {
+      setView(viewParam as 'list' | 'scanner');
+    }
+  }, [searchParams]);
+
+  const handleSetView = (newView: 'list' | 'scanner') => {
+    setView(newView);
+    setSearchParams({ view: newView });
+  };
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -122,6 +140,17 @@ export default function MaintenanceOrdersPage() {
     setShowEditModal(true);
   };
 
+  const handleScan = (decodedText: string) => {
+    setShowScannerModal(false);
+    // Try to extract equipment ID from URL
+    // Format: https://.../equipment/ID or https://.../status/ID
+    const match = decodedText.match(/\/(?:equipment|status)\/([a-f0-9-]+)/i);
+    const id = match ? match[1] : decodedText;
+    
+    // Redirect to the public status page for quick check-up
+    navigate(`/status/${id}`);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat(i18n.language === 'pt' ? 'pt-BR' : 'en-US', {
       style: 'currency',
@@ -132,22 +161,63 @@ export default function MaintenanceOrdersPage() {
   return (
     <ErrorBoundary>
       <div className="space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('maintenance_orders')}</h2>
             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('maintenance_desc')}</p>
           </div>
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"
-          >
-            <Plus className="w-5 h-5" />
-            {t('new_order')}
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors">
+              <button 
+                onClick={() => handleSetView('list')}
+                className={cn(
+                  "flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                  view === 'list' ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                )}
+              >
+                {t('list')}
+              </button>
+              <button 
+                onClick={() => handleSetView('scanner')}
+                className={cn(
+                  "flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
+                  view === 'scanner' ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                )}
+              >
+                <QrCode className="w-4 h-4" />
+                {t('scanner')}
+              </button>
+            </div>
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"
+            >
+              <Plus className="w-5 h-5" />
+              {t('new_order')}
+            </button>
+          </div>
         </div>
 
-        {/* Filters and Search */}
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
+        {view === 'scanner' ? (
+          <div className="flex flex-col items-center justify-center py-12 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm transition-colors text-center p-8">
+            <div className="w-24 h-24 bg-blue-50 dark:bg-blue-900/20 rounded-3xl flex items-center justify-center mb-6 border border-blue-100 dark:border-blue-900/30">
+              <QrCode className="w-12 h-12 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-2">Check-up via QR Code</h3>
+            <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8">
+              Escaneie o código da máquina para verificar instantaneamente o status de operação e manutenções pendentes.
+            </p>
+            <button 
+              onClick={() => setShowScannerModal(true)}
+              className="px-12 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 shadow-xl"
+            >
+              Abrir Câmera
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Filters and Search */}
+            <div className="flex flex-col lg:flex-row lg:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
@@ -380,8 +450,10 @@ export default function MaintenanceOrdersPage() {
             ))}
           </div>
         </div>
+      </>
+    )}
 
-        <AddOrderModal 
+    <AddOrderModal 
           isOpen={showAddModal} 
           onClose={() => setShowAddModal(false)} 
           equipmentList={equipment}
@@ -405,6 +477,12 @@ export default function MaintenanceOrdersPage() {
           title={t('confirm_delete_order_title')}
           message={t('confirm_delete_order_message')}
           isLoading={isDeleting}
+        />
+
+        <QRScannerModal 
+          isOpen={showScannerModal} 
+          onClose={() => setShowScannerModal(false)}
+          onScan={handleScan}
         />
       </div>
     </ErrorBoundary>

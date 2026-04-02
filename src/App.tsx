@@ -23,6 +23,8 @@ import SettingsPage from './pages/Settings';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 
+import PublicMachineStatus from './pages/PublicMachineStatus';
+
 export default function App() {
   const { t } = useTranslation();
   const [user, setUser] = useState<any>(null);
@@ -126,6 +128,7 @@ export default function App() {
           <Toaster position="top-right" richColors />
           <Routes>
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/status/:id" element={<PublicMachineStatus />} />
             {!user ? (
               <>
                 <Route path="/login" element={<Login />} />

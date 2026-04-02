@@ -329,6 +329,9 @@ const resources = {
       "initializing_camera": "Initializing camera...",
       "camera_error": "Camera Error",
       "retry": "Retry",
+      "scanner": "Scanner",
+      "list": "List",
+      "grid": "Grid"
     }
   },
   pt: {
@@ -657,6 +660,9 @@ const resources = {
       "initializing_camera": "Inicializando câmera...",
       "camera_error": "Erro na Câmera",
       "retry": "Tentar Novamente",
+      "scanner": "Scanner",
+      "list": "Lista",
+      "grid": "Grade"
     }
   }
 };
