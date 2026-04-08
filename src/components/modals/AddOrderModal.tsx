@@ -45,7 +45,7 @@ export function AddOrderModal({ isOpen, onClose, equipmentList = [], initialEqui
 
   type FormData = z.infer<typeof schema>;
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       request_date: new Date().toISOString().split('T')[0],
@@ -60,12 +60,14 @@ export function AddOrderModal({ isOpen, onClose, equipmentList = [], initialEqui
 
   React.useEffect(() => {
     const fetchNextNumber = async () => {
-      const { data } = await supabase.rpc('get_next_order_number');
-      if (data) {
-        reset((prev) => ({
-          ...prev,
-          order_number: data
-        }));
+      try {
+        const { data, error } = await supabase.rpc('get_next_order_number');
+        if (error) throw error;
+        if (data) {
+          setValue('order_number', data);
+        }
+      } catch (err) {
+        console.warn('Error fetching next number:', err);
       }
     };
 
@@ -113,7 +115,10 @@ export function AddOrderModal({ isOpen, onClose, equipmentList = [], initialEqui
       let errorMessage = error.message || t('order_created_error');
       
       if (errorMessage.includes('schema cache') || errorMessage.includes('not found')) {
-        errorMessage = t('table_not_found', { table: 'maintenance_orders' });
+        // If it's a specific column error, show the raw error to help debugging
+        if (!errorMessage.includes('column')) {
+          errorMessage = t('table_not_found', { table: 'maintenance_orders' });
+        }
       }
       
       toast.error(errorMessage);

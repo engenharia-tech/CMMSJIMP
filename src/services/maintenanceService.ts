@@ -191,22 +191,43 @@ export const addOrder = async (data: Omit<MaintenanceOrder, 'id'>) => {
 
   try {
     // Get next sequential order number
-    const { data: nextNumber, error: seqError } = await supabase.rpc('get_next_order_number');
-    if (seqError) {
-      console.error('Error generating order number:', seqError.message || seqError);
+    let nextNumber = data.order_number;
+    try {
+      const { data: rpcNumber, error: seqError } = await supabase.rpc('get_next_order_number');
+      if (!seqError && rpcNumber) {
+        nextNumber = rpcNumber;
+      } else if (seqError) {
+        console.warn('Could not generate sequential order number, using provided one:', seqError.message);
+      }
+    } catch (rpcErr) {
+      console.warn('RPC get_next_order_number failed:', rpcErr);
     }
 
-    const insertPromise = supabase.from('maintenance_orders').insert({
-      ...data,
-      order_number: nextNumber || data.order_number,
-      created_by: user?.id,
+    const orderToInsert = {
+      equipment_id: data.equipment_id,
+      order_number: nextNumber,
+      sector: data.sector,
+      request_date: data.request_date,
+      requester: data.requester,
+      operator: data.operator,
+      action_type: data.action_type,
+      priority: data.priority,
+      problem_description: data.problem_description,
+      status: data.status,
       labor_hours: data.labor_hours || 0,
       labor_cost: data.labor_cost || 0,
       parts_cost: data.parts_cost || 0,
-      maintenance_cost: data.maintenance_cost || 0
-    });
+      downtime_hours: data.downtime_hours || 0,
+      maintenance_cost: data.maintenance_cost || 0,
+      next_preventive_date: data.next_preventive_date,
+      created_by: user.id,
+      parts_list: data.parts_list || []
+    };
 
-    const { error } = await Promise.race([insertPromise, timeoutPromise]) as any;
+    const { error } = await Promise.race([
+      supabase.from('maintenance_orders').insert(orderToInsert),
+      timeoutPromise
+    ]) as any;
     
     if (error) {
       console.error('maintenanceService: addOrder error:', error.message || error);
