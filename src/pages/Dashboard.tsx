@@ -14,7 +14,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { KPIChart } from '@/components/dashboard/KPIChart';
-import { getEquipment, getOrders, calculateKPIs } from '@/services/maintenanceService';
+import { getEquipment, getOrders, calculateKPIs, fetchEquipment, fetchOrders } from '@/services/maintenanceService';
 import { Equipment, MaintenanceOrder } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -31,31 +31,20 @@ export default function Dashboard() {
       setLoading(false);
     });
 
+    // Auto-refresh every 30 seconds as requested
+    const refreshInterval = setInterval(() => {
+      fetchEquipment();
+      fetchOrders();
+    }, 30000);
+
     return () => {
       unsubEquipment();
       unsubOrders();
+      clearInterval(refreshInterval);
     };
   }, []);
 
   const kpis = calculateKPIs(orders, equipment);
-
-  // Mock data for charts
-  const monthlyCostData = [
-    { name: 'Jan', cost: 4500 },
-    { name: 'Feb', cost: 5200 },
-    { name: 'Mar', cost: 4800 },
-    { name: 'Apr', cost: 6100 },
-    { name: 'May', cost: 5500 },
-    { name: 'Jun', cost: 7200 },
-  ];
-
-  const downtimeData = [
-    { name: 'Press 01', hours: 12 },
-    { name: 'CNC 04', hours: 24 },
-    { name: 'Lathe 02', hours: 8 },
-    { name: 'Mill 05', hours: 15 },
-    { name: 'Robot 03', hours: 5 },
-  ];
 
   if (loading) {
     return (
@@ -160,14 +149,14 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <KPIChart 
             title={t('monthly_cost_title')} 
-            data={monthlyCostData} 
+            data={kpis.monthlyCostData} 
             dataKey="cost" 
             type="area" 
             color="#10b981" 
           />
           <KPIChart 
             title={t('downtime_title')} 
-            data={downtimeData} 
+            data={kpis.downtimeData} 
             dataKey="hours" 
             type="bar" 
             color="#ef4444" 

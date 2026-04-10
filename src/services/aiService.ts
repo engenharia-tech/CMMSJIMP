@@ -1,11 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
 import { Equipment, MaintenanceOrder } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-
 export async function analyzeFailures(orders: MaintenanceOrder[], equipment: Equipment[]) {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-1.5-flash";
+  const apiKey = process.env.GEMINI_API_KEY || "";
   
+  if (!apiKey) {
+    throw new Error("Chave da API Gemini não encontrada. Por favor, configure-a nas configurações.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
   const prompt = `
     Analyze the following industrial maintenance data and provide a detailed report in JSON format.
     
@@ -37,15 +42,23 @@ export async function analyzeFailures(orders: MaintenanceOrder[], equipment: Equ
   try {
     const response = await ai.models.generateContent({
       model,
-      contents: prompt,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         responseMimeType: "application/json"
       }
     });
 
-    return JSON.parse(response.text || "{}");
-  } catch (error) {
+    const text = response.text;
+    if (!text) throw new Error("No response from AI");
+    
+    // Clean up potential markdown formatting if Gemini returns it
+    const cleanJson = text.replace(/```json\n?|\n?```/g, '').trim();
+    return JSON.parse(cleanJson);
+  } catch (error: any) {
     console.error("AI Analysis Error:", error);
-    throw new Error("Failed to analyze failures with AI.");
+    if (error.message?.includes('API key not valid')) {
+      throw new Error("Erro de API: Chave do Gemini inválida ou ausente. Verifique as configurações.");
+    }
+    throw error;
   }
 }

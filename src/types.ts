@@ -80,5 +80,6 @@ export interface Settings {
   labor_rate: number;
   default_preventive_interval: number;
   default_predictive_interval: number;
+  default_corrective_time: number;
   updated_at?: string;
 }

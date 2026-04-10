@@ -6,6 +6,7 @@ import { getEquipment, getOrders } from '@/services/maintenanceService';
 import { Equipment, MaintenanceOrder } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function AnalyticsPage() {
   const { t } = useTranslation();
@@ -24,12 +25,18 @@ export default function AnalyticsPage() {
   }, []);
 
   const handleAnalyze = async () => {
+    if (orders.length === 0) {
+      toast.error(t('no_orders_to_analyze'));
+      return;
+    }
     setLoading(true);
     try {
       const result = await analyzeFailures(orders, equipment);
       setAnalysis(result);
-    } catch (error) {
+      toast.success(t('analysis_completed'));
+    } catch (error: any) {
       console.error(error);
+      toast.error(error.message || t('analysis_error'));
     } finally {
       setLoading(false);
     }

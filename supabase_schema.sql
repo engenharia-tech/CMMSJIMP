@@ -106,6 +106,8 @@ CREATE TABLE IF NOT EXISTS public.settings (
   labor_rate NUMERIC DEFAULT 50,
   default_preventive_interval INTEGER DEFAULT 30,
   default_predictive_interval INTEGER DEFAULT 90,
+  default_corrective_time INTEGER DEFAULT 24,
+  sector_costs JSONB DEFAULT '{}'::jsonb,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 

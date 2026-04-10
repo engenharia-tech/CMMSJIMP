@@ -3,7 +3,8 @@ import { Settings as SettingsIcon, Bell, Shield, Globe, Database, User, Save, Ch
 import { useTranslation } from 'react-i18next';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { toast } from 'sonner';
-import { getSettings, updateSettings } from '@/services/maintenanceService';
+import { cn } from '@/lib/utils';
+import { getSettings, updateSettings, getSystemStats } from '@/services/maintenanceService';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 
@@ -12,20 +13,42 @@ export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const { notifications, clearNotifications } = useNotifications();
   const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({
+    databaseStatus: 'connected',
+    apiVersion: 'v2.4.0',
+    storageUsed: 4.2,
+    storageTotal: 10,
+    lastBackup: ''
+  });
   const [settings, setSettings] = useState({
     labor_rate: 50,
     company_name: 'JIMP Industrial',
     address: 'Rua Industrial, 123',
     default_preventive_interval: 30,
-    default_predictive_interval: 90
+    default_predictive_interval: 90,
+    default_corrective_time: 24,
+    sector_costs: {} as Record<string, number>
   });
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      const data = await getSettings();
-      setSettings(data);
+    const fetchData = async () => {
+      const [settingsData, statsData] = await Promise.all([
+        getSettings(),
+        getSystemStats()
+      ]);
+      setSettings({
+        ...settingsData,
+        sector_costs: settingsData.sector_costs || {
+          'Produção': 100,
+          'Logística': 80,
+          'Qualidade': 60,
+          'Manutenção': 50,
+          'Utilidades': 90
+        }
+      });
+      setStats(statsData);
     };
-    fetchSettings();
+    fetchData();
   }, []);
 
   const handleSave = async () => {
@@ -41,6 +64,16 @@ export default function SettingsPage() {
     }
   };
 
+  const updateSectorCost = (sector: string, cost: number) => {
+    setSettings({
+      ...settings,
+      sector_costs: {
+        ...settings.sector_costs,
+        [sector]: cost
+      }
+    });
+  };
+
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
     toast.success(t('language_changed'));
@@ -48,7 +81,7 @@ export default function SettingsPage() {
 
   return (
     <ErrorBoundary>
-      <div className="space-y-8">
+      <div className="space-y-8 pb-24">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('settings')}</h2>
@@ -57,10 +90,21 @@ export default function SettingsPage() {
           <button 
             onClick={handleSave}
             disabled={loading}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 dark:bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-slate-900/20 hover:bg-slate-800 dark:hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
+            className="hidden sm:flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
           >
             {loading ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <Save className="w-5 h-5" />}
             {t('save_changes')}
+          </button>
+        </div>
+
+        {/* Floating Save Button for Mobile */}
+        <div className="fixed bottom-8 right-8 z-50 sm:hidden">
+          <button 
+            onClick={handleSave}
+            disabled={loading}
+            className="w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-blue-900/40 active:scale-90 transition-transform disabled:opacity-50"
+          >
+            {loading ? <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <Save className="w-6 h-6" />}
           </button>
         </div>
 
@@ -78,7 +122,7 @@ export default function SettingsPage() {
                   <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('company_name')}</label>
                   <input 
                     type="text" 
-                    value={settings.company_name} 
+                    value={settings.company_name ?? ''} 
                     onChange={(e) => setSettings({ ...settings, company_name: e.target.value })}
                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white" 
                   />
@@ -87,11 +131,37 @@ export default function SettingsPage() {
                   <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('address')}</label>
                   <input 
                     type="text" 
-                    value={settings.address} 
+                    value={settings.address ?? ''} 
                     onChange={(e) => setSettings({ ...settings, address: e.target.value })}
                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white" 
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('sector_costs')}</h3>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{t('sector_costs_desc')}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {Object.entries(settings.sector_costs).map(([sector, cost]) => (
+                  <div key={sector} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <span className="font-bold text-slate-900 dark:text-white">{sector}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-400">BRL/hr</span>
+                      <input 
+                        type="number" 
+                        value={cost ?? ''} 
+                        onChange={(e) => updateSectorCost(sector, parseFloat(e.target.value) || 0)}
+                        className="w-20 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-center font-bold dark:text-white" 
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -167,8 +237,8 @@ export default function SettingsPage() {
                       <DollarSign className="w-4 h-4 text-slate-400" />
                       <input 
                         type="number" 
-                        value={settings.labor_rate} 
-                        onChange={(e) => setSettings({ ...settings, labor_rate: parseFloat(e.target.value) })}
+                        value={settings.labor_rate ?? ''} 
+                        onChange={(e) => setSettings({ ...settings, labor_rate: parseFloat(e.target.value) || 0 })}
                         className="w-20 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-center font-bold dark:text-white" 
                       />
                     </div>
@@ -181,8 +251,8 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2">
                       <input 
                         type="number" 
-                        value={settings.default_preventive_interval} 
-                        onChange={(e) => setSettings({ ...settings, default_preventive_interval: parseInt(e.target.value) })}
+                        value={settings.default_preventive_interval ?? ''} 
+                        onChange={(e) => setSettings({ ...settings, default_preventive_interval: parseInt(e.target.value) || 0 })}
                         className="w-16 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-center font-bold dark:text-white" 
                       />
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('days')}</span>
@@ -196,11 +266,26 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2">
                       <input 
                         type="number" 
-                        value={settings.default_predictive_interval} 
-                        onChange={(e) => setSettings({ ...settings, default_predictive_interval: parseInt(e.target.value) })}
+                        value={settings.default_predictive_interval ?? ''} 
+                        onChange={(e) => setSettings({ ...settings, default_predictive_interval: parseInt(e.target.value) || 0 })}
                         className="w-16 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-center font-bold dark:text-white" 
                       />
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('days')}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">{t('corrective_time')}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t('corrective_time_desc')}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="number" 
+                        value={settings.default_corrective_time ?? ''} 
+                        onChange={(e) => setSettings({ ...settings, default_corrective_time: parseInt(e.target.value) || 0 })}
+                        className="w-16 px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-center font-bold dark:text-white" 
+                      />
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">hrs</span>
                     </div>
                   </div>
                 </div>
@@ -252,18 +337,21 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-400 font-medium">{t('database')}</span>
-                  <span className="text-green-400 font-bold flex items-center gap-1.5">
+                  <span className={cn(
+                    "font-bold flex items-center gap-1.5",
+                    stats.databaseStatus === 'connected' ? "text-green-400" : "text-red-400"
+                  )}>
                     <CheckCircle className="w-4 h-4" />
-                    {t('connected')}
+                    {stats.databaseStatus === 'connected' ? t('connected') : t('disconnected')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-400 font-medium">{t('api_version')}</span>
-                  <span className="text-slate-300 font-bold">v2.4.0</span>
+                  <span className="text-slate-300 font-bold">{stats.apiVersion}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-400 font-medium">{t('storage')}</span>
-                  <span className="text-slate-300 font-bold">4.2 GB / 10 GB</span>
+                  <span className="text-slate-300 font-bold">{stats.storageUsed} GB / {stats.storageTotal} GB</span>
                 </div>
               </div>
             </div>

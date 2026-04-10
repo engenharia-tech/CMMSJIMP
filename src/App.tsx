@@ -41,7 +41,11 @@ export default function App() {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           const profile = await getUserProfile(session.user.id);
-          setUser({ ...session.user, role: profile?.role || 'operator' });
+          setUser({ 
+            ...session.user, 
+            role: profile?.role || 'operator',
+            full_name: profile?.full_name || session.user.user_metadata?.full_name
+          });
         } else {
           setUser(null);
         }
@@ -67,7 +71,11 @@ export default function App() {
           console.log('Fetching profile for user after auth change...');
           const profile = await getUserProfile(session.user.id);
           console.log('Profile loaded:', profile?.role);
-          setUser({ ...session.user, role: profile?.role || 'operator' });
+          setUser({ 
+            ...session.user, 
+            role: profile?.role || 'operator',
+            full_name: profile?.full_name || session.user.user_metadata?.full_name
+          });
         } else {
           setUser(null);
         }

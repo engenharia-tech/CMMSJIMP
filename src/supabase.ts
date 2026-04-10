@@ -14,13 +14,14 @@ export const isSupabaseConfigured = !!(
   supabaseUrl.includes('.supabase.co')
 );
 
-// Use placeholders to prevent crash during initialization if env vars are missing
+// Use sessionStorage to ensure the session is cleared when the tab is closed
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co', 
   supabaseAnonKey || 'placeholder',
   {
     auth: {
       persistSession: true,
+      storage: typeof window !== 'undefined' ? window.sessionStorage : undefined,
       autoRefreshToken: true,
       detectSessionInUrl: true
     }

@@ -97,12 +97,16 @@ export function Sidebar({ user, isOpen, onClose }: SidebarProps) {
       
       <div className="p-4 border-t border-slate-800 space-y-2">
         <div className="flex items-center gap-3 px-4 py-2">
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold">
-            {user?.user_metadata?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold shrink-0">
+            {(user?.full_name || user?.user_metadata?.full_name)?.split(' ').map((n: string) => n[0]).join('') || user?.email?.[0].toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user?.user_metadata?.full_name || t('user')}</p>
-            <p className="text-xs text-slate-400 truncate capitalize">{t(user?.role || 'operator')}</p>
+            <p className="text-sm font-bold truncate text-white">
+              {user?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('user')}
+            </p>
+            <p className="text-[10px] text-blue-400 truncate uppercase tracking-widest font-black">
+              {t(user?.role || 'operator')}
+            </p>
           </div>
         </div>
         <button 
