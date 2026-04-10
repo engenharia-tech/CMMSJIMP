@@ -2,63 +2,111 @@ import { GoogleGenAI } from "@google/genai";
 import { Equipment, MaintenanceOrder } from "../types";
 
 export async function analyzeFailures(orders: MaintenanceOrder[], equipment: Equipment[]) {
-  const model = "gemini-1.5-flash";
-  const apiKey = process.env.GEMINI_API_KEY || "";
+  const model = "gemini-3-flash-preview";
+  const apiKey = process.env.GEMINI_API_KEY;
   
-  if (!apiKey) {
-    throw new Error("Chave da API Gemini não encontrada. Por favor, configure-a nas configurações.");
+  if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+    throw new Error("Chave da API Gemini não encontrada. Por favor, verifique se a variável GEMINI_API_KEY está configurada corretamente.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
-    Analyze the following industrial maintenance data and provide a detailed report in JSON format.
+    Analise os seguintes dados de manutenção industrial e forneça um relatório detalhado em formato JSON.
     
-    Equipment: ${JSON.stringify(equipment.map(e => ({ name: e.equipment_name, sector: e.sector, criticality: e.criticality })))}
-    Maintenance Orders: ${JSON.stringify(orders.map(o => ({ 
-      equipment: o.equipment_id, 
-      type: o.action_type, 
-      cause: o.root_cause, 
-      description: o.problem_description,
-      cost: o.maintenance_cost,
-      downtime: o.downtime_hours
+    Equipamentos: ${JSON.stringify(equipment.map(e => ({ nome: e.equipment_name, setor: e.sector, criticidade: e.criticality })))}
+    Ordens de Manutenção: ${JSON.stringify(orders.map(o => ({ 
+      equipamento: o.equipment_id, 
+      tipo: o.action_type, 
+      causa: o.root_cause, 
+      descricao: o.problem_description,
+      custo: o.maintenance_cost,
+      tempo_parada: o.downtime_hours
     })))}
     
-    The report should include:
-    1. Recurring failure patterns detected.
-    2. Suggested preventive maintenance intervals for critical equipment.
-    3. Predictions of possible imminent failures.
-    4. A summary of the most critical equipment based on failure frequency and cost.
+    O relatório deve incluir:
+    1. Padrões de falha recorrentes detectados.
+    2. Intervalos de manutenção preventiva sugeridos para equipamentos críticos.
+    3. Previsões de possíveis falhas iminentes.
+    4. Um resumo dos equipamentos mais críticos com base na frequência de falhas e custo.
     
-    Return ONLY a JSON object with the following structure:
+    Retorne APENAS um objeto JSON com a seguinte estrutura:
     {
-      "patterns": ["pattern 1", "pattern 2"],
-      "suggestions": [{"equipment": "name", "interval": "15 days", "reason": "why"}],
-      "predictions": [{"equipment": "name", "risk": "high", "reason": "why"}],
-      "critical_summary": "summary text"
+      "patterns": ["padrão 1", "padrão 2"],
+      "suggestions": [{"equipment": "nome", "interval": "15 dias", "reason": "motivo"}],
+      "predictions": [{"equipment": "nome", "risk": "alto", "reason": "motivo"}],
+      "critical_summary": "texto do resumo"
     }
   `;
 
   try {
     const response = await ai.models.generateContent({
       model,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      contents: prompt,
       config: {
         responseMimeType: "application/json"
       }
     });
 
     const text = response.text;
-    if (!text) throw new Error("No response from AI");
+    if (!text) throw new Error("Nenhuma resposta da IA");
     
     // Clean up potential markdown formatting if Gemini returns it
     const cleanJson = text.replace(/```json\n?|\n?```/g, '').trim();
     return JSON.parse(cleanJson);
   } catch (error: any) {
     console.error("AI Analysis Error:", error);
-    if (error.message?.includes('API key not valid')) {
-      throw new Error("Erro de API: Chave do Gemini inválida ou ausente. Verifique as configurações.");
+    
+    // Handle the specific error from the image
+    if (error.message?.includes('API Key not found') || error.message?.includes('API_KEY_INVALID')) {
+      throw new Error("Erro de Autenticação: A chave da API Gemini é inválida ou não foi encontrada. Por favor, verifique as configurações do projeto.");
     }
+    
+    throw error;
+  }
+}
+
+export async function askAi(question: string, orders: MaintenanceOrder[], equipment: Equipment[]) {
+  const normalizedQuestion = question.toLowerCase().trim();
+  if (normalizedQuestion.includes("quem criou você") || normalizedQuestion.includes("por quem você foi criado")) {
+    return "Fui criada por Edson Farias, aquele cheiroso, lindo, maravilhoso ❤️";
+  }
+
+  const model = "gemini-3-flash-preview";
+  const apiKey = process.env.GEMINI_API_KEY;
+  
+  if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+    throw new Error("Chave da API Gemini não encontrada.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  const context = `
+    Contexto de Manutenção Industrial:
+    Equipamentos: ${JSON.stringify(equipment.map(e => ({ nome: e.equipment_name, setor: e.sector, criticidade: e.criticality, status: e.status })))}
+    Histórico de Ordens: ${JSON.stringify(orders.map(o => ({ 
+      equipamento: o.equipment_id, 
+      tipo: o.action_type, 
+      causa: o.root_cause, 
+      descricao: o.problem_description,
+      data: o.request_date
+    })))}
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: [
+        { role: "user", parts: [{ text: `${context}\n\nPergunta do usuário: ${question}` }] }
+      ],
+      config: {
+        systemInstruction: "Você é um especialista em manutenção industrial. Responda de forma concisa e técnica em português, baseando-se apenas nos dados fornecidos."
+      }
+    });
+
+    return response.text || "Não foi possível gerar uma resposta.";
+  } catch (error: any) {
+    console.error("AI Question Error:", error);
     throw error;
   }
 }
