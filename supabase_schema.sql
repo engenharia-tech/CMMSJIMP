@@ -91,8 +91,9 @@ CREATE TABLE IF NOT EXISTS public.parts (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   part_code TEXT NOT NULL,
   part_name TEXT NOT NULL,
-  stock_quantity INTEGER DEFAULT 0,
-  minimum_stock INTEGER DEFAULT 0,
+  stock_quantity NUMERIC DEFAULT 0,
+  minimum_stock NUMERIC DEFAULT 0,
+  unit TEXT DEFAULT 'un',
   unit_cost NUMERIC DEFAULT 0,
   supplier TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())

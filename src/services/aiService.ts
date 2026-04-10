@@ -3,10 +3,10 @@ import { Equipment, MaintenanceOrder } from "../types";
 
 export async function analyzeFailures(orders: MaintenanceOrder[], equipment: Equipment[]) {
   const model = "gemini-3-flash-preview";
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
   
   if (!apiKey || apiKey === 'undefined' || apiKey === '') {
-    throw new Error("Chave da API Gemini não encontrada. Por favor, verifique se a variável GEMINI_API_KEY está configurada corretamente.");
+    throw new Error("Chave da API Gemini não encontrada. Por favor, configure a chave no menu Configurações -> Secrets (GEMINI_API_KEY).");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -73,10 +73,10 @@ export async function askAi(question: string, orders: MaintenanceOrder[], equipm
   }
 
   const model = "gemini-3-flash-preview";
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
   
   if (!apiKey || apiKey === 'undefined' || apiKey === '') {
-    throw new Error("Chave da API Gemini não encontrada.");
+    throw new Error("Chave da API Gemini não encontrada. Por favor, configure a chave no menu Configurações -> Secrets (GEMINI_API_KEY).");
   }
 
   const ai = new GoogleGenAI({ apiKey });

@@ -63,6 +63,8 @@ export interface User {
   department: string;
 }
 
+export type PartUnit = 'un' | 'm' | 'L';
+
 export interface Part {
   id: string;
   part_code: string;
@@ -71,6 +73,7 @@ export interface Part {
   minimum_stock: number;
   unit_cost: number;
   supplier: string;
+  unit: PartUnit;
 }
 
 export interface Settings {

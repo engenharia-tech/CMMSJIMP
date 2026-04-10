@@ -14,6 +14,7 @@ export default function PartsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [partToEdit, setPartToEdit] = useState<Part | null>(null);
   const [partToDelete, setPartToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -30,8 +31,18 @@ export default function PartsPage() {
     part.part_code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleEdit = (part: Part) => {
+    setPartToEdit(part);
+    setShowAddModal(true);
+  };
+
   const handleDelete = (id: string) => {
     setPartToDelete(id);
+  };
+
+  const closeAddModal = () => {
+    setShowAddModal(false);
+    setPartToEdit(null);
   };
 
   const confirmDelete = async () => {
@@ -115,7 +126,7 @@ export default function PartsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <span className={`font-bold ${part.stock_quantity <= part.minimum_stock ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                          {part.stock_quantity}
+                          {part.stock_quantity} {part.unit || 'un'}
                         </span>
                         {part.stock_quantity <= part.minimum_stock && (
                           <AlertTriangle className="w-4 h-4 text-red-500" />
@@ -130,7 +141,10 @@ export default function PartsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        <button 
+                          onClick={() => handleEdit(part)}
+                          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button 
@@ -162,7 +176,10 @@ export default function PartsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-500 transition-colors">
+                    <button 
+                      onClick={() => handleEdit(part)}
+                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 dark:text-slate-500 transition-colors"
+                    >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button 
@@ -179,7 +196,7 @@ export default function PartsPage() {
                     <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('stock', 'Stock')}</p>
                     <div className="flex items-center gap-2">
                       <span className={`font-bold ${part.stock_quantity <= part.minimum_stock ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                        {part.stock_quantity}
+                        {part.stock_quantity} {part.unit || 'un'}
                       </span>
                       {part.stock_quantity <= part.minimum_stock && (
                         <AlertTriangle className="w-4 h-4 text-red-500" />
@@ -208,7 +225,11 @@ export default function PartsPage() {
           )}
         </div>
 
-        <AddPartModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} />
+        <AddPartModal 
+          isOpen={showAddModal} 
+          onClose={closeAddModal} 
+          part={partToEdit}
+        />
 
         <ConfirmationModal
           isOpen={!!partToDelete}

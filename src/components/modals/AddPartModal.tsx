@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { addPart } from '@/services/partsService';
+import { addPart, updatePart } from '@/services/partsService';
+import { Part, PartUnit } from '@/types';
 import { toast } from 'sonner';
 
 const schema = z.object({
@@ -14,6 +15,7 @@ const schema = z.object({
   minimum_stock: z.number().min(0),
   unit_cost: z.number().min(0),
   supplier: z.string().min(1, "Required"),
+  unit: z.enum(['un', 'm', 'L']),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -21,26 +23,57 @@ type FormData = z.infer<typeof schema>;
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  part?: Part | null;
 }
 
-export function AddPartModal({ isOpen, onClose }: Props) {
+export function AddPartModal({ isOpen, onClose, part }: Props) {
   const { t } = useTranslation();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       stock_quantity: 0,
       minimum_stock: 5,
       unit_cost: 0,
+      unit: 'un',
     }
   });
 
+  useEffect(() => {
+    if (part) {
+      reset({
+        part_code: part.part_code,
+        part_name: part.part_name,
+        stock_quantity: part.stock_quantity,
+        minimum_stock: part.minimum_stock,
+        unit_cost: part.unit_cost,
+        supplier: part.supplier,
+        unit: part.unit || 'un',
+      });
+    } else {
+      reset({
+        part_code: '',
+        part_name: '',
+        stock_quantity: 0,
+        minimum_stock: 5,
+        unit_cost: 0,
+        supplier: '',
+        unit: 'un',
+      });
+    }
+  }, [part, reset]);
+
   const onSubmit = async (data: FormData) => {
     try {
-      await addPart(data);
-      toast.success(t('part_added_success'));
+      if (part) {
+        await updatePart(part.id, data);
+        toast.success(t('part_updated_success', 'Peça atualizada com sucesso'));
+      } else {
+        await addPart(data);
+        toast.success(t('part_added_success'));
+      }
       onClose();
     } catch (error: any) {
-      toast.error(error.message || t('part_added_error'));
+      toast.error(error.message || t('part_save_error', 'Erro ao salvar peça'));
     }
   };
 
@@ -50,7 +83,9 @@ export function AddPartModal({ isOpen, onClose }: Props) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 transition-colors">
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 transition-colors">
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('add_new_part')}</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+            {part ? t('edit_part', 'Editar Peça') : t('add_new_part')}
+          </h3>
           <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
             <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
           </button>
@@ -69,13 +104,22 @@ export function AddPartModal({ isOpen, onClose }: Props) {
               {errors.part_name && <p className="text-xs text-red-500">{t('required')}</p>}
             </div>
             <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('unit', 'Unidade')}</label>
+              <select {...register('unit')} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors">
+                <option value="un">Quantidade (un)</option>
+                <option value="m">Metros (m)</option>
+                <option value="L">Litros (L)</option>
+              </select>
+              {errors.unit && <p className="text-xs text-red-500">{t('required')}</p>}
+            </div>
+            <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('stock_quantity')}</label>
-              <input type="number" {...register('stock_quantity', { valueAsNumber: true })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors" />
+              <input type="number" step="0.01" {...register('stock_quantity', { valueAsNumber: true })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors" />
               {errors.stock_quantity && <p className="text-xs text-red-500">{t('required')}</p>}
             </div>
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('minimum_stock')}</label>
-              <input type="number" {...register('minimum_stock', { valueAsNumber: true })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors" />
+              <input type="number" step="0.01" {...register('minimum_stock', { valueAsNumber: true })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors" />
               {errors.minimum_stock && <p className="text-xs text-red-500">{t('required')}</p>}
             </div>
             <div className="space-y-2">
@@ -83,7 +127,7 @@ export function AddPartModal({ isOpen, onClose }: Props) {
               <input type="number" step="0.01" {...register('unit_cost', { valueAsNumber: true })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors" />
               {errors.unit_cost && <p className="text-xs text-red-500">{t('required')}</p>}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('supplier')}</label>
               <input {...register('supplier')} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 outline-none transition-colors" />
               {errors.supplier && <p className="text-xs text-red-500">{t('required')}</p>}
@@ -93,7 +137,7 @@ export function AddPartModal({ isOpen, onClose }: Props) {
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 transition-colors">
             <button type="button" onClick={onClose} className="px-6 py-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">{t('cancel')}</button>
             <button type="submit" disabled={isSubmitting} className="px-8 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all disabled:opacity-50">
-              {isSubmitting ? t('saving') : t('add_part')}
+              {isSubmitting ? t('saving') : (part ? t('save_changes', 'Salvar Alterações') : t('add_part'))}
             </button>
           </div>
         </form>

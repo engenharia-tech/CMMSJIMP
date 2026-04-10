@@ -73,7 +73,7 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
   };
 
   const handleUpdateQuantity = (partId: string, quantity: number) => {
-    if (quantity < 1) return;
+    if (quantity <= 0) return;
     setSelectedParts(selectedParts.map(p => 
       p.part_id === partId ? { ...p, quantity } : p
     ));
@@ -255,10 +255,14 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
                         <div className="flex items-center justify-center gap-2">
                           <input 
                             type="number" 
+                            step="0.01"
                             value={p.quantity}
-                            onChange={(e) => handleUpdateQuantity(p.part_id, parseInt(e.target.value) || 1)}
-                            className="w-12 px-1 py-1 bg-slate-50 border border-slate-200 rounded text-center text-xs font-bold"
+                            onChange={(e) => handleUpdateQuantity(p.part_id, parseFloat(e.target.value) || 0)}
+                            className="w-20 px-1 py-1 bg-slate-50 border border-slate-200 rounded text-center text-xs font-bold"
                           />
+                          <span className="text-[10px] text-slate-400 font-bold uppercase">
+                            {parts.find(part => part.id === p.part_id)?.unit || 'un'}
+                          </span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
