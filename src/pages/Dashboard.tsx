@@ -8,7 +8,8 @@ import {
   TrendingDown, 
   BarChart3,
   Zap,
-  QrCode
+  QrCode,
+  ExternalLink
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -71,7 +72,16 @@ export default function Dashboard() {
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('dashboard')}</h2>
             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('real_time_kpis')}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href="https://www.jimpnexus.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95"
+            >
+              <ExternalLink className="w-4 h-4" />
+              {t('back_to_portal')}
+            </a>
             <Link 
               to="/orders?view=scanner"
               className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-bold shadow-lg hover:opacity-90 transition-all active:scale-95"

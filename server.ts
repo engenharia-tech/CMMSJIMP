@@ -39,30 +39,122 @@ const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
     })
   : null;
 
-// API to create a new user (Admin only)
+// API to check if an email is pre-approved/added by Admin (Public route)
+app.post("/api/auth/check-preapproved", async (req, res) => {
+  const { email } = req.body;
+  if (!email || typeof email !== "string") {
+    return res.status(400).json({ preapproved: false, error: "Email inválido" });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  try {
+    if (supabaseAdmin) {
+      const { data, error } = await supabaseAdmin
+        .from("profiles")
+        .select("id, full_name, email")
+        .ilike("email", cleanEmail)
+        .maybeSingle();
+
+      if (data) {
+        return res.json({ preapproved: true, fullName: data.full_name });
+      }
+
+      // Also check auth.users directly via admin client if profiles row not found
+      const { data: userData } = await supabaseAdmin.auth.admin.listUsers();
+      const foundUser = userData?.users?.find((u: any) => u.email?.toLowerCase() === cleanEmail);
+      if (foundUser) {
+        return res.json({ preapproved: true, fullName: foundUser.user_metadata?.full_name || "Usuário" });
+      }
+    }
+
+    return res.json({ preapproved: false });
+  } catch (err: any) {
+    console.error("Check preapproved error:", err);
+    res.status(500).json({ preapproved: false, error: err.message });
+  }
+});
+
+// API to create a new user without admin knowing password (Admin only)
 app.post("/api/admin/create-user", async (req, res) => {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: "Supabase Admin não configurado. Por favor, adicione a variável SUPABASE_SERVICE_ROLE_KEY nas configurações do ambiente." });
   }
 
-  const { email, password, fullName, role } = req.body;
+  const { email, fullName, role } = req.body;
+
+  if (!email || !fullName) {
+    return res.status(400).json({ error: "E-mail e Nome Completo são obrigatórios." });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const host = req.headers.host;
+  const origin = req.headers.origin || `${protocol}://${host}`;
+  const redirectTo = `${origin}/reset-password`;
 
   try {
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name: fullName, role: role || 'operator' }
+    let createdUser: any = null;
+    let inviteLink: string | null = null;
+
+    // Try inviteUserByEmail first
+    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(cleanEmail, {
+      redirectTo,
+      data: { full_name: fullName, role: role || 'operator' }
     });
 
-    if (authError) {
-      if (authError.message.includes("already been registered")) {
-        return res.status(409).json({ error: "user_already_registered", message: authError.message });
+    if (!inviteError && inviteData?.user) {
+      createdUser = inviteData.user;
+    } else {
+      // Fallback: Create user with random unmanageable password
+      const randomPassword = 'Pswd_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + '!9';
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: cleanEmail,
+        password: randomPassword,
+        email_confirm: true,
+        user_metadata: { full_name: fullName, role: role || 'operator' }
+      });
+
+      if (authError) {
+        if (authError.message.includes("already been registered") || authError.message.includes("already exists")) {
+          return res.status(409).json({ error: "user_already_registered", message: authError.message });
+        }
+        throw authError;
       }
-      throw authError;
+      createdUser = authData.user;
     }
 
-    res.json({ success: true, user: authData.user });
+    // Upsert into profiles table
+    if (createdUser) {
+      await supabaseAdmin.from('profiles').upsert({
+        id: createdUser.id,
+        full_name: fullName,
+        email: cleanEmail,
+        role: role || 'operator',
+        updated_at: new Date().toISOString()
+      });
+
+      // Generate password setup / recovery link
+      try {
+        const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: cleanEmail,
+          options: { redirectTo }
+        });
+        if (linkData?.properties?.action_link) {
+          inviteLink = linkData.properties.action_link;
+        }
+      } catch (linkErr) {
+        console.warn("Could not generate direct recovery link:", linkErr);
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      user: createdUser,
+      inviteLink,
+      message: "Usuário cadastrado com sucesso. Ele poderá definir a própria senha no primeiro acesso." 
+    });
   } catch (error: any) {
     console.error("Error creating user:", error);
     res.status(400).json({ error: error.message });

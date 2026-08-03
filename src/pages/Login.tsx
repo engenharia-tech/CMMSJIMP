@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LogIn, ShieldCheck, Zap, BrainCircuit, UserPlus, Mail, Lock, User, ArrowLeft } from 'lucide-react';
+import { LogIn, ShieldCheck, Mail, Lock, ArrowLeft, KeyRound, CheckCircle2 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
-import { signInWithEmail, signUpWithEmail, resetPasswordForEmail } from '@/supabase';
+import { signInWithEmail, resetPasswordForEmail } from '@/supabase';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,7 +14,7 @@ export default function Login() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isFirstAccess, setIsFirstAccess] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
 
   const loginSchema = z.object({
@@ -22,8 +22,8 @@ export default function Login() {
     password: z.string().min(6, t('password_min_length')),
   });
 
-  const signupSchema = loginSchema.extend({
-    fullName: z.string().min(2, t('full_name_required')),
+  const firstAccessSchema = z.object({
+    email: z.string().email(t('invalid_email')),
   });
 
   const forgotPasswordSchema = z.object({
@@ -31,15 +31,15 @@ export default function Login() {
   });
 
   type LoginFormValues = z.infer<typeof loginSchema>;
-  type SignupFormValues = z.infer<typeof signupSchema>;
+  type FirstAccessFormValues = z.infer<typeof firstAccessSchema>;
   type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   });
 
-  const signupForm = useForm<SignupFormValues>({
-    resolver: zodResolver(signupSchema),
+  const firstAccessForm = useForm<FirstAccessFormValues>({
+    resolver: zodResolver(firstAccessSchema),
   });
 
   const forgotPasswordForm = useForm<ForgotPasswordFormValues>({
@@ -47,20 +47,15 @@ export default function Login() {
   });
 
   const onLoginSubmit = async (data: LoginFormValues) => {
-    console.log('Login form submitted:', data.email);
     setIsLoading(true);
     
-    // Safety timeout for login request - increased to 30s
     const safetyTimeout = setTimeout(() => {
-      console.warn('Login timed out after 30s');
       setIsLoading(false);
       toast.error(t('login_timeout'));
     }, 30000);
 
     try {
-      console.log('Calling signInWithEmail...');
       const result = await signInWithEmail(data.email, data.password);
-      console.log('signInWithEmail result:', result ? 'success' : 'no data');
       clearTimeout(safetyTimeout);
       
       if (result) {
@@ -69,7 +64,6 @@ export default function Login() {
         navigate(from, { replace: true });
       }
     } catch (error: any) {
-      console.error('Login error in component:', error);
       clearTimeout(safetyTimeout);
       
       let message = t('failed_to_sign_in');
@@ -83,25 +77,34 @@ export default function Login() {
       
       toast.error(message);
     } finally {
-      console.log('Login process finished');
       setIsLoading(false);
     }
   };
 
-  const onSignupSubmit = async (data: SignupFormValues) => {
-    console.log('Signup form submitted:', data.email);
+  const onFirstAccessSubmit = async (data: FirstAccessFormValues) => {
     setIsLoading(true);
     try {
-      await signUpWithEmail(data.email, data.password, data.fullName);
-      toast.success(t('account_created'));
-      setIsSignUp(false);
-    } catch (error: any) {
-      console.error('Signup error:', error);
-      let message = error.message || t('failed_to_create_account');
-      if (error.message?.includes("already been registered")) {
-        message = t('user_already_registered');
+      // Step 1: Check if email is preapproved by Admin
+      const checkRes = await fetch('/api/auth/check-preapproved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email })
+      });
+      const checkData = await checkRes.json();
+
+      if (!checkData.preapproved) {
+        toast.error(t('unauthorized_email'));
+        setIsLoading(false);
+        return;
       }
-      toast.error(message);
+
+      // Step 2: Send password creation link to pre-approved user
+      await resetPasswordForEmail(data.email);
+      toast.success(t('first_access_link_sent'));
+      setIsFirstAccess(false);
+    } catch (error: any) {
+      console.error('First access error:', error);
+      toast.error(error.message || t('unauthorized_email'));
     } finally {
       setIsLoading(false);
     }
@@ -140,10 +143,10 @@ export default function Login() {
 
         <div className="bg-white/5 p-4 rounded-xl mb-8 border border-white/5 text-center">
           <h2 className="text-sm font-bold text-white mb-1">
-            {isForgotPassword ? t('reset_password') : isSignUp ? t('create_account') : t('restricted_access')}
+            {isForgotPassword ? t('reset_password') : isFirstAccess ? t('first_access') : t('restricted_access')}
           </h2>
           <p className="text-[10px] text-slate-400">
-            {isForgotPassword ? t('enter_email_to_reset') : isSignUp ? t('join_network') : t('sign_in_credentials')}
+            {isForgotPassword ? t('enter_email_to_reset') : isFirstAccess ? t('first_access_desc') : t('sign_in_credentials')}
           </p>
         </div>
 
@@ -186,48 +189,20 @@ export default function Login() {
               {t('back_to_login')}
             </button>
           </form>
-        ) : isSignUp ? (
-          <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
-            <div className="space-y-1">
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                <input
-                  {...signupForm.register('fullName')}
-                  type="text"
-                  placeholder={t('full_name')}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                />
-              </div>
-              {signupForm.formState.errors.fullName && (
-                <p className="text-red-400 text-xs font-medium pl-2">{signupForm.formState.errors.fullName.message}</p>
-              )}
-            </div>
+        ) : isFirstAccess ? (
+          <form onSubmit={firstAccessForm.handleSubmit(onFirstAccessSubmit)} className="space-y-4">
             <div className="space-y-1">
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                 <input
-                  {...signupForm.register('email')}
+                  {...firstAccessForm.register('email')}
                   type="email"
                   placeholder={t('email_address')}
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                 />
               </div>
-              {signupForm.formState.errors.email && (
-                <p className="text-red-400 text-xs font-medium pl-2">{signupForm.formState.errors.email.message}</p>
-              )}
-            </div>
-            <div className="space-y-1">
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                <input
-                  {...signupForm.register('password')}
-                  type="password"
-                  placeholder={t('password')}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                />
-              </div>
-              {signupForm.formState.errors.password && (
-                <p className="text-red-400 text-xs font-medium pl-2">{signupForm.formState.errors.password.message}</p>
+              {firstAccessForm.formState.errors.email && (
+                <p className="text-red-400 text-xs font-medium pl-2">{firstAccessForm.formState.errors.email.message}</p>
               )}
             </div>
             <button
@@ -239,10 +214,18 @@ export default function Login() {
                 <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <UserPlus className="w-6 h-6" />
-                  {t('sign_up')}
+                  <KeyRound className="w-6 h-6" />
+                  {t('create_password')}
                 </>
               )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsFirstAccess(false)}
+              className="w-full py-3 text-slate-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {t('back_to_login')}
             </button>
           </form>
         ) : (
@@ -301,17 +284,20 @@ export default function Login() {
           </form>
         )}
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setIsForgotPassword(false);
-            }}
-            className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest"
-          >
-            {isSignUp ? t('already_have_account') : t('dont_have_account')}
-          </button>
-        </div>
+        {!isForgotPassword && !isFirstAccess && (
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setIsFirstAccess(true);
+                setIsForgotPassword(false);
+              }}
+              className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest flex items-center justify-center gap-2 mx-auto"
+            >
+              <KeyRound className="w-4 h-4" />
+              {t('first_access')}
+            </button>
+          </div>
+        )}
 
         <div className="mt-8 pt-8 border-t border-white/10 space-y-4">
           <div className="flex items-center gap-4 text-left p-3 bg-white/5 rounded-xl border border-white/5">

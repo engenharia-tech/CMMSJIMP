@@ -37,13 +37,27 @@ export const signInWithEmail = async (email: string, password: string) => {
       password,
     });
     if (error) {
-      console.error('Sign in error:', error);
+      const details = {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+        code: (error as any).code
+      };
+      console.error('Sign in error details:', details);
+      console.error('Sign in error message string:', error.message);
       throw error;
     }
     console.log('Sign in successful');
     return data;
-  } catch (err) {
-    console.error('Sign in exception:', err);
+  } catch (err: any) {
+    const details = {
+      message: err.message,
+      name: err.name,
+      code: err.code,
+      stack: err.stack
+    };
+    console.error('Sign in exception details:', details);
+    console.error('Sign in exception message string:', err.message);
     throw err;
   }
 };
@@ -129,6 +143,23 @@ export const getUserProfile = async (userId: string) => {
 };
 
 export const handleSupabaseError = (error: any, operation: string) => {
-  console.error(`Supabase Error during ${operation}:`, error);
+  // Extract useful information from potential Error or AuthError objects
+  const errorDetails = {
+    message: error?.message || 'Unknown error',
+    status: error?.status,
+    code: error?.code,
+    details: error?.details,
+    hint: error?.hint,
+    name: error?.name,
+    stack: error?.stack
+  };
+  
+  console.error(`Supabase Error during ${operation}:`, errorDetails);
+  
+  // If the object was still somehow logged as {} in some environments, log the message string separately
+  if (error?.message) {
+    console.error(`Supabase Error Message [${operation}]:`, error.message);
+  }
+  
   throw error;
 };

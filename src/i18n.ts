@@ -331,7 +331,19 @@ const resources = {
       "user_updated_success": "User updated successfully",
       "scanner": "Scanner",
       "list": "List",
-      "grid": "Grid"
+      "grid": "Grid",
+      "back_to_portal": "Back to Portal",
+      "portal": "Portal",
+      "portal_nexus": "JIMP Nexus Portal",
+      "first_access": "First Access",
+      "create_password": "Create Password",
+      "first_access_desc": "Registered users can request a link to set their password",
+      "unauthorized_email": "Unauthorized email. Contact system administrator to register your account.",
+      "first_access_link_sent": "Password creation link sent! Check your inbox.",
+      "user_created_invite_info": "User registered! They will set their password on first access.",
+      "copy_invite_link": "Copy Invite Link",
+      "invite_link_copied": "Invite link copied!",
+      "invite_user_notice": "The user creates their own password on first access. The administrator does not manage user passwords."
     }
   },
   pt: {
@@ -671,7 +683,19 @@ const resources = {
       "user_updated_success": "Usuário atualizado com sucesso",
       "scanner": "Scanner",
       "list": "Lista",
-      "grid": "Grade"
+      "grid": "Grade",
+      "back_to_portal": "Voltar ao Portal",
+      "portal": "Portal",
+      "portal_nexus": "Portal JIMP Nexus",
+      "first_access": "Primeiro Acesso",
+      "create_password": "Criar Senha",
+      "first_access_desc": "Usuários cadastrados podem solicitar o link para definir sua senha",
+      "unauthorized_email": "E-mail não cadastrado. Entre em contato com o administrador para solicitar seu cadastro.",
+      "first_access_link_sent": "Link para criação de senha enviado! Verifique seu e-mail.",
+      "user_created_invite_info": "Usuário cadastrado com sucesso! Ele criará a própria senha no primeiro acesso.",
+      "copy_invite_link": "Copiar Link de Convite",
+      "invite_link_copied": "Link de convite copiado!",
+      "invite_user_notice": "O próprio usuário cria sua senha no primeiro acesso. O administrador não visualiza nem gerencia a senha do colaborador."
     }
   }
 };

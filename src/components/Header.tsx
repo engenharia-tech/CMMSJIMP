@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Bell, Globe, Moon, Sun, Check, Trash2, Menu } from 'lucide-react';
+import { Search, Bell, Globe, Moon, Sun, Check, Trash2, Menu, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -42,7 +42,19 @@ export function Header({ onMenuClick }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
+        <a
+          href="https://www.jimpnexus.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold transition-all shadow-sm shadow-blue-500/20 active:scale-95 shrink-0"
+          title={t('back_to_portal')}
+        >
+          <ExternalLink className="w-4 h-4" />
+          <span className="hidden sm:inline">{t('back_to_portal')}</span>
+          <span className="sm:hidden">{t('portal')}</span>
+        </a>
+
         <button 
           onClick={toggleLanguage}
           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400"

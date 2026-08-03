@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Shield, User as UserIcon, Trash2, Mail, Lock, Check, X, AlertCircle, Edit2 } from 'lucide-react';
+import { UserPlus, Shield, User as UserIcon, Trash2, Mail, Lock, Check, X, AlertCircle, Edit2, KeyRound, Copy, ExternalLink } from 'lucide-react';
 import { supabase } from '@/supabase';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
@@ -21,9 +21,10 @@ export default function Users() {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [createdInviteLink, setCreatedInviteLink] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
     fullName: '',
     role: 'operator' as Profile['role']
   });
@@ -61,7 +62,11 @@ export default function Users() {
       const response = await fetch('/api/admin/create-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          email: formData.email,
+          fullName: formData.fullName,
+          role: formData.role
+        })
       });
 
       const result = await response.json();
@@ -71,9 +76,12 @@ export default function Users() {
         throw new Error(errorMsg);
       }
 
-      toast.success(t('user_created_success'));
+      toast.success(t('user_created_invite_info'));
+      if (result.inviteLink) {
+        setCreatedInviteLink(result.inviteLink);
+      }
       setIsAdding(false);
-      setFormData({ email: '', password: '', fullName: '', role: 'operator' });
+      setFormData({ email: '', fullName: '', role: 'operator' });
       fetchProfiles();
     } catch (error: any) {
       toast.error(error.message);
@@ -98,7 +106,7 @@ export default function Users() {
       if (error) throw error;
       toast.success(t('user_updated_success'));
       setEditingProfile(null);
-      setFormData({ email: '', password: '', fullName: '', role: 'operator' });
+      setFormData({ email: '', fullName: '', role: 'operator' });
       fetchProfiles();
     } catch (error: any) {
       toast.error(error.message);
@@ -111,10 +119,16 @@ export default function Users() {
     setEditingProfile(profile);
     setFormData({
       email: profile.email || '',
-      password: '', // Don't show password
       fullName: profile.full_name,
       role: profile.role
     });
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedLink(true);
+    toast.success(t('invite_link_copied'));
+    setTimeout(() => setCopiedLink(false), 3000);
   };
 
   const handleDeleteUser = (userId: string) => {
@@ -218,19 +232,11 @@ export default function Users() {
               )}
 
               {!editingProfile && (
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">{t('initial_password')}</label>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
-                    <input
-                      required
-                      type="password"
-                      value={formData.password}
-                      onChange={e => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
-                      placeholder={t('min_6_chars')}
-                    />
-                  </div>
+                <div className="md:col-span-2 p-4 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl flex items-center gap-3.5 text-blue-900 dark:text-blue-200 transition-colors">
+                  <KeyRound className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <p className="text-xs font-semibold leading-relaxed">
+                    {t('invite_user_notice')}
+                  </p>
                 </div>
               )}
 
@@ -258,12 +264,6 @@ export default function Users() {
                 >
                   {loading ? t('saving') : (editingProfile ? t('update_user') : t('confirm_registration'))}
                 </button>
-                {!editingProfile && (
-                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-4 py-4 rounded-2xl border border-amber-100 dark:border-amber-900/30 transition-colors">
-                    <AlertCircle className="w-5 h-5" />
-                    <p className="text-xs font-bold leading-tight">{t('user_login_immediate')}</p>
-                  </div>
-                )}
               </div>
             </form>
           </motion.div>
@@ -406,6 +406,72 @@ export default function Users() {
         message={t('delete_user_confirm')}
         isLoading={isDeleting}
       />
+
+      {/* Direct Invite Link Modal */}
+      <AnimatePresence>
+        {createdInviteLink && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative"
+            >
+              <button
+                onClick={() => setCreatedInviteLink(null)}
+                className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center shrink-0">
+                  <KeyRound className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">{t('first_access')}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('user_created_invite_info')}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  Você também pode copiar o link abaixo e enviá-lo diretamente para o colaborador (via WhatsApp, Teams ou E-mail):
+                </p>
+                <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl">
+                  <input
+                    readOnly
+                    type="text"
+                    value={createdInviteLink}
+                    className="w-full bg-transparent px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none"
+                  />
+                  <button
+                    onClick={() => copyToClipboard(createdInviteLink)}
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shrink-0 transition-all active:scale-95"
+                  >
+                    {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copiedLink ? "Copiado!" : t('copy_invite_link')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <button
+                  onClick={() => setCreatedInviteLink(null)}
+                  className="px-6 py-3 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white rounded-xl text-sm font-bold transition-all"
+                >
+                  Concluído
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
 
   );
