@@ -90,7 +90,13 @@ export default function Login() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: data.email })
       });
-      const checkData = await checkRes.json();
+      const checkText = await checkRes.text();
+      let checkData: any = {};
+      try {
+        checkData = JSON.parse(checkText);
+      } catch (err) {
+        console.error("Non-JSON preapproved check response:", checkText);
+      }
 
       if (!checkData.preapproved) {
         toast.error(t('unauthorized_email'));

@@ -70,7 +70,14 @@ export default function Users() {
         })
       });
 
-      const result = await response.json();
+      const responseText = await response.text();
+      let result: any = {};
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseErr) {
+        console.error("Non-JSON API response:", responseText);
+        throw new Error(`Erro no servidor (${response.status}): Por favor, verifique se as variáveis do Supabase Admin estão configuradas.`);
+      }
 
       if (!response.ok) {
         const errorMsg = result.error === 'user_already_registered' ? t('user_already_registered') : (result.error || t('failed_to_create_account'));

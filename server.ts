@@ -41,16 +41,16 @@ const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
 
 // API to check if an email is pre-approved/added by Admin (Public route)
 app.post("/api/auth/check-preapproved", async (req, res) => {
-  const { email } = req.body;
-  if (!email || typeof email !== "string") {
-    return res.status(400).json({ preapproved: false, error: "Email inválido" });
-  }
-
-  const cleanEmail = email.trim().toLowerCase();
-
   try {
+    const { email } = req.body || {};
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ preapproved: false, error: "Email inválido" });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
     if (supabaseAdmin) {
-      const { data, error } = await supabaseAdmin
+      const { data } = await supabaseAdmin
         .from("profiles")
         .select("id, full_name, email")
         .ilike("email", cleanEmail)
@@ -71,64 +71,57 @@ app.post("/api/auth/check-preapproved", async (req, res) => {
     return res.json({ preapproved: false });
   } catch (err: any) {
     console.error("Check preapproved error:", err);
-    res.status(500).json({ preapproved: false, error: err.message });
+    return res.status(500).json({ preapproved: false, error: err.message || "Erro no servidor" });
   }
 });
 
 // API to create a new user without admin knowing password (Admin only)
 app.post("/api/admin/create-user", async (req, res) => {
-  if (!supabaseAdmin) {
-    return res.status(500).json({ error: "Supabase Admin não configurado. Por favor, adicione a variável SUPABASE_SERVICE_ROLE_KEY nas configurações do ambiente." });
-  }
-
-  const { email, fullName, role } = req.body;
-
-  if (!email || !fullName) {
-    return res.status(400).json({ error: "E-mail e Nome Completo são obrigatórios." });
-  }
-
-  const cleanEmail = email.trim().toLowerCase();
-  const clientOrigin = req.body.clientOrigin;
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers.host;
-  const requestOrigin = req.headers.origin || `${protocol}://${host}`;
-  const actualOrigin = (clientOrigin && clientOrigin.startsWith('http')) ? clientOrigin : requestOrigin;
-  const redirectTo = `${actualOrigin}/reset-password`;
-
   try {
+    if (!supabaseAdmin) {
+      return res.status(500).json({ 
+        error: "Supabase Admin não configurado. Por favor, adicione a variável SUPABASE_SERVICE_ROLE_KEY nas configurações do ambiente." 
+      });
+    }
+
+    const { email, fullName, role } = req.body || {};
+
+    if (!email || !fullName) {
+      return res.status(400).json({ error: "E-mail e Nome Completo são obrigatórios." });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const clientOrigin = req.body?.clientOrigin;
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers.host;
+    const requestOrigin = req.headers.origin || `${protocol}://${host}`;
+    const actualOrigin = (clientOrigin && clientOrigin.startsWith('http')) ? clientOrigin : requestOrigin;
+    const redirectTo = `${actualOrigin}/reset-password`;
+
     let createdUser: any = null;
     let inviteLink: string | null = null;
 
-    // Try inviteUserByEmail first
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(cleanEmail, {
-      redirectTo,
-      data: { full_name: fullName, role: role || 'operator' }
+    // Create user with random password and pre-confirmed email
+    const randomPassword = 'Pswd_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + '!9';
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: cleanEmail,
+      password: randomPassword,
+      email_confirm: true,
+      user_metadata: { full_name: fullName, role: role || 'operator' }
     });
 
-    if (!inviteError && inviteData?.user) {
-      createdUser = inviteData.user;
-    } else {
-      // Fallback: Create user with random unmanageable password
-      const randomPassword = 'Pswd_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + '!9';
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: cleanEmail,
-        password: randomPassword,
-        email_confirm: true,
-        user_metadata: { full_name: fullName, role: role || 'operator' }
-      });
-
-      if (authError) {
-        if (authError.message.includes("already been registered") || authError.message.includes("already exists")) {
-          return res.status(409).json({ error: "user_already_registered", message: authError.message });
-        }
-        throw authError;
+    if (authError) {
+      if (authError.message.includes("already been registered") || authError.message.includes("already exists")) {
+        return res.status(409).json({ error: "user_already_registered", message: authError.message });
       }
-      createdUser = authData.user;
+      throw authError;
     }
+
+    createdUser = authData?.user;
 
     // Upsert into profiles table
     if (createdUser) {
-      await supabaseAdmin.from('profiles').upsert({
+      const { error: profileErr } = await supabaseAdmin.from('profiles').upsert({
         id: createdUser.id,
         full_name: fullName,
         email: cleanEmail,
@@ -136,7 +129,11 @@ app.post("/api/admin/create-user", async (req, res) => {
         updated_at: new Date().toISOString()
       });
 
-      // Generate password setup / recovery link
+      if (profileErr) {
+        console.warn("Profile upsert notice:", profileErr.message);
+      }
+
+      // Generate password setup / recovery link for direct access
       try {
         const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
           type: 'recovery',
@@ -145,7 +142,6 @@ app.post("/api/admin/create-user", async (req, res) => {
         });
         if (linkData?.properties?.action_link) {
           let rawLink = linkData.properties.action_link;
-          // Fix localhost redirect_to in action_link if Supabase inserted default localhost
           rawLink = rawLink.replace(
             /redirect_to=http%3A%2F%2Flocalhost%3A3000[^\&]*/gi,
             `redirect_to=${encodeURIComponent(actualOrigin + '/reset-password')}`
@@ -160,7 +156,7 @@ app.post("/api/admin/create-user", async (req, res) => {
       }
     }
 
-    res.json({ 
+    return res.json({ 
       success: true, 
       user: createdUser,
       inviteLink,
@@ -168,8 +164,19 @@ app.post("/api/admin/create-user", async (req, res) => {
     });
   } catch (error: any) {
     console.error("Error creating user:", error);
-    res.status(400).json({ error: error.message });
+    return res.status(500).json({ error: error?.message || "Erro ao criar usuário" });
   }
+});
+
+// JSON error middleware for API routes
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (req.path && req.path.startsWith('/api')) {
+    console.error("API Route Error:", err);
+    return res.status(err.status || 500).json({
+      error: err.message || "Erro interno no servidor."
+    });
+  }
+  next(err);
 });
 
 async function startServer() {
