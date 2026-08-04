@@ -94,6 +94,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (window.location.hash.includes('access_token=') && !window.location.pathname.startsWith('/reset-password')) {
+      window.location.href = '/reset-password' + window.location.hash;
+    }
+  }, []);
+
+  useEffect(() => {
     console.log('Current user state:', user?.email, 'Role:', user?.role);
   }, [user]);
 

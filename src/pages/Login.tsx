@@ -285,16 +285,23 @@ export default function Login() {
         )}
 
         {!isForgotPassword && !isFirstAccess && (
-          <div className="mt-6 text-center">
+          <div className="mt-6 flex items-center justify-center gap-4 text-center">
             <button
               onClick={() => {
                 setIsFirstAccess(true);
                 setIsForgotPassword(false);
               }}
-              className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest flex items-center justify-center gap-2 mx-auto"
+              className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest flex items-center justify-center gap-2"
             >
               <KeyRound className="w-4 h-4" />
               {t('first_access')}
+            </button>
+            <span className="text-slate-600">|</span>
+            <button
+              onClick={() => navigate('/reset-password')}
+              className="text-xs font-bold text-slate-400 hover:text-white transition-colors uppercase tracking-widest"
+            >
+              Cole o Link / Token
             </button>
           </div>
         )}

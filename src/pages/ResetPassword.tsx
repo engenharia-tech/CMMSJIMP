@@ -14,10 +14,55 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isSessionReady, setIsSessionReady] = useState(false);
+  const [pastedUrl, setPastedUrl] = useState('');
+  const [isActivatingPasted, setIsActivatingPasted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper to process raw URL/hash string and set Supabase session
+  const tryActivateSessionFromText = async (text: string) => {
+    if (!text || !isSupabaseConfigured) return false;
+    
+    try {
+      let accessToken = '';
+      let refreshToken = '';
+
+      const accMatch = text.match(/access_token=([^&]+)/);
+      if (accMatch) accessToken = decodeURIComponent(accMatch[1]);
+
+      const refMatch = text.match(/refresh_token=([^&]+)/);
+      if (refMatch) refreshToken = decodeURIComponent(refMatch[1]);
+
+      if (accessToken) {
+        console.log('Found access token in text, attempting setSession...');
+        const { data, error: setSessionErr } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || accessToken,
+        });
+
+        if (setSessionErr) throw setSessionErr;
+
+        if (data?.session) {
+          setIsSessionReady(true);
+          setError(null);
+          toast.success("Link validado com sucesso! Crie sua nova senha abaixo.");
+          return true;
+        }
+      }
+    } catch (err: any) {
+      console.error('Error activating session from text:', err);
+      toast.error('Erro ao validar o link: ' + (err.message || 'verifique o texto inserido.'));
+    }
+    return false;
+  };
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
+
+    // Check if hash or search already contains access_token
+    const fullUrl = window.location.href;
+    if (fullUrl.includes('access_token=')) {
+      tryActivateSessionFromText(fullUrl);
+    }
 
     // Listen for the PASSWORD_RECOVERY event
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -36,13 +81,13 @@ export default function ResetPassword() {
         console.log('Initial session found');
         setIsSessionReady(true);
       } else {
-        // If no session after 3 seconds, show error
+        // If no session after 2.5 seconds, set error message so paste UI is accessible
         setTimeout(() => {
-          if (!isSessionReady) {
+          if (!isSessionReady && !window.location.href.includes('access_token=')) {
             console.warn('No session found after timeout');
             setError(t('session_expired_or_invalid'));
           }
-        }, 3000);
+        }, 2500);
       }
     };
 
@@ -53,6 +98,17 @@ export default function ResetPassword() {
   if (!isSupabaseConfigured) {
     return <Navigate to="/login" replace />;
   }
+
+  const handleManualActivate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pastedUrl.trim()) return;
+    setIsActivatingPasted(true);
+    const success = await tryActivateSessionFromText(pastedUrl);
+    setIsActivatingPasted(false);
+    if (!success && !isSessionReady) {
+      toast.error("Link ou token não pôde ser ativado. Verifique se o e-mail completo foi copiado.");
+    }
+  };
 
   const resetSchema = z.object({
     password: z.string().min(6, t('password_min_length')),
@@ -93,18 +149,40 @@ export default function ResetPassword() {
     }
   };
 
-  if (error) {
+  if (error && !isSessionReady) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 relative overflow-hidden">
-        <div className="w-full max-w-md bg-white/5 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative z-10 text-center">
-          <div className="w-16 h-16 bg-red-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <AlertCircle className="w-8 h-8 text-red-500" />
+        <div className="w-full max-w-lg bg-white/5 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative z-10 text-center">
+          <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-8 h-8 text-blue-400" />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">{t('reset_link_error')}</h2>
-          <p className="text-slate-400 text-sm mb-8">{error}</p>
+          <h2 className="text-xl font-bold text-white mb-2">Primeiro Acesso / Redefinição de Senha</h2>
+          <p className="text-slate-400 text-xs mb-6">
+            Se o e-mail redirecionou para uma página que não abriu (ex: <code className="text-amber-400">localhost:3000</code>), copie a URL completa da barra de endereço do seu navegador ou do e-mail e cole no campo abaixo para ativar seu acesso:
+          </p>
+
+          <form onSubmit={handleManualActivate} className="space-y-4 mb-6">
+            <div className="relative">
+              <input
+                type="text"
+                value={pastedUrl}
+                onChange={(e) => setPastedUrl(e.target.value)}
+                placeholder="Cole o link recebido (ex: http://localhost:3000/#access_token=...)"
+                className="w-full bg-white/10 border border-white/20 rounded-xl py-3.5 px-4 text-xs font-mono text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isActivatingPasted || !pastedUrl.trim()}
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-xl transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isActivatingPasted ? "Validando Link..." : "Validar Link e Criar Senha"}
+            </button>
+          </form>
+
           <button
             onClick={() => navigate('/login')}
-            className="w-full py-4 bg-white text-slate-900 rounded-xl font-black text-lg shadow-xl hover:bg-slate-100 transition-all active:scale-95"
+            className="w-full py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl font-medium text-xs border border-white/10 transition-all"
           >
             {t('back_to_login')}
           </button>

@@ -88,10 +88,12 @@ app.post("/api/admin/create-user", async (req, res) => {
   }
 
   const cleanEmail = email.trim().toLowerCase();
+  const clientOrigin = req.body.clientOrigin;
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers.host;
-  const origin = req.headers.origin || `${protocol}://${host}`;
-  const redirectTo = `${origin}/reset-password`;
+  const requestOrigin = req.headers.origin || `${protocol}://${host}`;
+  const actualOrigin = (clientOrigin && clientOrigin.startsWith('http')) ? clientOrigin : requestOrigin;
+  const redirectTo = `${actualOrigin}/reset-password`;
 
   try {
     let createdUser: any = null;
@@ -142,7 +144,16 @@ app.post("/api/admin/create-user", async (req, res) => {
           options: { redirectTo }
         });
         if (linkData?.properties?.action_link) {
-          inviteLink = linkData.properties.action_link;
+          let rawLink = linkData.properties.action_link;
+          // Fix localhost redirect_to in action_link if Supabase inserted default localhost
+          rawLink = rawLink.replace(
+            /redirect_to=http%3A%2F%2Flocalhost%3A3000[^\&]*/gi,
+            `redirect_to=${encodeURIComponent(actualOrigin + '/reset-password')}`
+          ).replace(
+            /redirect_to=http:\/\/localhost:3000[^\&]*/gi,
+            `redirect_to=${encodeURIComponent(actualOrigin + '/reset-password')}`
+          );
+          inviteLink = rawLink;
         }
       } catch (linkErr) {
         console.warn("Could not generate direct recovery link:", linkErr);

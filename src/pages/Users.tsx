@@ -65,7 +65,8 @@ export default function Users() {
         body: JSON.stringify({
           email: formData.email,
           fullName: formData.fullName,
-          role: formData.role
+          role: formData.role,
+          clientOrigin: window.location.origin
         })
       });
 
