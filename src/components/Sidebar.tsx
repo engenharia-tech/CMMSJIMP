@@ -113,19 +113,31 @@ export function Sidebar({ user, isOpen, onClose }: SidebarProps) {
       </div>
 
       <div className="p-4 border-t border-slate-800 space-y-2">
-        <div className="flex items-center gap-3 px-4 py-2">
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold shrink-0">
+        <button
+          onClick={() => {
+            navigate('/settings?tab=profile');
+            if (window.innerWidth < 1024) onClose();
+          }}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-slate-800 transition-all text-left group cursor-pointer border border-transparent hover:border-slate-700/60"
+          title="Editar meu perfil e alterar senha"
+        >
+          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-xs font-black shrink-0 shadow-md group-hover:scale-105 group-hover:ring-2 group-hover:ring-blue-400 transition-all">
             {(user?.full_name || user?.user_metadata?.full_name)?.split(' ').map((n: string) => n[0]).join('') || user?.email?.[0].toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold truncate text-white">
+            <p className="text-sm font-bold truncate text-white group-hover:text-blue-300 transition-colors">
               {user?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('user')}
             </p>
-            <p className="text-[10px] text-blue-400 truncate uppercase tracking-widest font-black">
-              {t(user?.role || 'operator')}
-            </p>
+            <div className="flex items-center justify-between mt-0.5">
+              <span className="text-[10px] text-blue-400 truncate uppercase tracking-widest font-black">
+                {t(user?.role || 'operator')}
+              </span>
+              <span className="text-[9px] text-slate-400 group-hover:text-blue-300 font-semibold transition-colors">
+                Editar
+              </span>
+            </div>
           </div>
-        </div>
+        </button>
         <button 
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all text-sm font-medium"

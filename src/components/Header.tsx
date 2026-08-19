@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Bell, Globe, Moon, Sun, Check, Trash2, Menu, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Bell, Globe, Moon, Sun, Check, Trash2, Menu, ExternalLink, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -9,10 +10,12 @@ import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   onMenuClick: () => void;
+  user?: any;
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, user }: HeaderProps) {
   const { i18n, t } = useTranslation();
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearNotifications } = useNotifications();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -140,8 +143,27 @@ export function Header({ onMenuClick }: HeaderProps) {
         <button 
           onClick={toggleTheme}
           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-600 dark:text-slate-400"
+          title={theme === 'light' ? t('dark_mode') : t('light_mode')}
         >
           {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+        </button>
+
+        <button
+          onClick={() => navigate('/settings?tab=profile')}
+          className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/60 transition-all text-left group"
+          title="Meu Perfil e Alterar Senha"
+        >
+          <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-black shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+            {(user?.full_name || user?.user_metadata?.full_name)?.split(' ').map((n: string) => n[0]).join('') || user?.email?.[0].toUpperCase() || 'U'}
+          </div>
+          <div className="hidden md:block">
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              {user?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('user')}
+            </p>
+            <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider leading-none mt-0.5">
+              {t(user?.role || 'operator')}
+            </p>
+          </div>
         </button>
       </div>
     </header>
