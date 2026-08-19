@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Shield, User as UserIcon, Trash2, Mail, Lock, Check, X, AlertCircle, Edit2, KeyRound, Copy, ExternalLink } from 'lucide-react';
+import { UserPlus, Shield, User as UserIcon, Trash2, Mail, Lock, Check, X, AlertCircle, Edit2, KeyRound, Copy, ExternalLink, Eye, EyeOff, CheckCircle2, Share2 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/supabase';
 import { toast } from 'sonner';
@@ -24,10 +24,20 @@ export default function Users() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [createdInviteLink, setCreatedInviteLink] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [copiedCreds, setCopiedCreds] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    email: string;
+    fullName: string;
+    role: string;
+    password: string;
+    loginUrl: string;
+  } | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     fullName: '',
-    role: 'operator' as Profile['role']
+    role: 'operator' as Profile['role'],
+    password: 'Jimp@2026'
   });
 
   useEffect(() => {
@@ -81,6 +91,8 @@ export default function Users() {
         .maybeSingle();
 
       const origin = window.location.origin.replace(/\/$/, '');
+      const loginUrl = `${origin}/login`;
+      const userPassword = formData.password.trim() || 'Jimp@2026';
 
       if (existingProfile) {
         // If already in profiles, update full_name and role
@@ -93,18 +105,16 @@ export default function Users() {
           })
           .eq('id', existingProfile.id);
 
-        try {
-          await supabase.auth.resetPasswordForEmail(cleanEmail, {
-            redirectTo: `${origin}/reset-password`
-          });
-        } catch (rErr) {
-          console.warn("Reset email notice:", rErr);
-        }
-
-        toast.success(t('user_created_invite_info'));
-        setCreatedInviteLink(`${origin}/reset-password`);
+        toast.success(`Colaborador ${fullName} atualizado no sistema!`);
+        setCreatedCredentials({
+          email: cleanEmail,
+          fullName,
+          role,
+          password: userPassword,
+          loginUrl
+        });
         setIsAdding(false);
-        setFormData({ email: '', fullName: '', role: 'operator' });
+        setFormData({ email: '', fullName: '', role: 'operator', password: 'Jimp@2026' });
         await fetchProfiles();
         return;
       }
@@ -118,11 +128,10 @@ export default function Users() {
         }
       });
 
-      // 3. Register user with secure temporary password & metadata
-      const tempPassword = 'Jimp#' + Math.random().toString(36).slice(2, 8) + 'X9!';
+      // 3. Register user with chosen initial password & metadata
       const { data: authData, error: authError } = await tempClient.auth.signUp({
         email: cleanEmail,
-        password: tempPassword,
+        password: userPassword,
         options: {
           data: {
             full_name: fullName,
@@ -156,21 +165,16 @@ export default function Users() {
         }
       }
 
-      // 5. Trigger password reset/creation email for the user
-      try {
-        await supabase.auth.resetPasswordForEmail(cleanEmail, {
-          redirectTo: `${origin}/reset-password`
-        });
-      } catch (resetErr) {
-        console.warn("Reset password email trigger notice:", resetErr);
-      }
-
-      const inviteLink = `${origin}/reset-password`;
-
-      toast.success(t('user_created_invite_info'));
-      setCreatedInviteLink(inviteLink);
+      toast.success(`Colaborador ${fullName} cadastrado com sucesso!`);
+      setCreatedCredentials({
+        email: cleanEmail,
+        fullName,
+        role,
+        password: userPassword,
+        loginUrl
+      });
       setIsAdding(false);
-      setFormData({ email: '', fullName: '', role: 'operator' });
+      setFormData({ email: '', fullName: '', role: 'operator', password: 'Jimp@2026' });
       await fetchProfiles();
     } catch (error: any) {
       console.error("Create user error:", error);
@@ -306,7 +310,7 @@ export default function Users() {
 
               {!editingProfile && (
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">{t('email_address')}</label>
+                  <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">{t('email_address')} (Corporativo ou Pessoal)</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
                     <input
@@ -315,18 +319,37 @@ export default function Users() {
                       value={formData.email}
                       onChange={e => setFormData({ ...formData, email: e.target.value })}
                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
-                      placeholder="john@company.com"
+                      placeholder="ex: leonardo.s@joinvilleimplementos.com.br"
                     />
                   </div>
                 </div>
               )}
 
               {!editingProfile && (
-                <div className="md:col-span-2 p-4 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl flex items-center gap-3.5 text-blue-900 dark:text-blue-200 transition-colors">
-                  <KeyRound className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
-                  <p className="text-xs font-semibold leading-relaxed">
-                    {t('invite_user_notice')}
-                  </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Senha Inicial / Provisória</label>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500">Mínimo 6 caracteres</span>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
+                    <input
+                      required
+                      minLength={6}
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={e => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-slate-900 dark:text-white font-mono text-sm"
+                      placeholder="Senha inicial"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -345,6 +368,15 @@ export default function Users() {
                   </select>
                 </div>
               </div>
+
+              {!editingProfile && (
+                <div className="md:col-span-2 p-4 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl flex items-center gap-3.5 text-blue-900 dark:text-blue-200 transition-colors">
+                  <KeyRound className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <p className="text-xs font-semibold leading-relaxed">
+                    <strong>Contas Corporativas (não Google) ou Pessoais:</strong> O colaborador entrará normalmente na tela de login digitando seu e-mail corporativo e a senha definida acima.
+                  </p>
+                </div>
+              )}
 
               <div className="md:col-span-2 flex items-center gap-4 pt-4">
                 <button
@@ -497,9 +529,9 @@ export default function Users() {
         isLoading={isDeleting}
       />
 
-      {/* Direct Invite Link Modal */}
+      {/* Direct Invite / Credentials Modal */}
       <AnimatePresence>
-        {createdInviteLink && (
+        {createdCredentials && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -513,49 +545,61 @@ export default function Users() {
               className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative"
             >
               <button
-                onClick={() => setCreatedInviteLink(null)}
+                onClick={() => setCreatedCredentials(null)}
                 className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
 
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center shrink-0">
-                  <KeyRound className="w-6 h-6" />
+                <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white">{t('first_access')}</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t('user_created_invite_info')}</p>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">Acesso Liberado com Sucesso!</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">O colaborador pode entrar com estas credenciais (conta corporativa ou pessoal):</p>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  Você também pode copiar o link abaixo e enviá-lo diretamente para o colaborador (via WhatsApp, Teams ou E-mail):
-                </p>
-                <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl">
-                  <input
-                    readOnly
-                    type="text"
-                    value={createdInviteLink}
-                    className="w-full bg-transparent px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none"
-                  />
-                  <button
-                    onClick={() => copyToClipboard(createdInviteLink)}
-                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shrink-0 transition-all active:scale-95"
-                  >
-                    {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {copiedLink ? "Copiado!" : t('copy_invite_link')}
-                  </button>
+              <div className="space-y-4 bg-slate-50 dark:bg-slate-800/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between py-1 border-b border-slate-200 dark:border-slate-700/60">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Colaborador:</span>
+                  <span className="text-xs font-black text-slate-900 dark:text-white">{createdCredentials.fullName}</span>
+                </div>
+                <div className="flex items-center justify-between py-1 border-b border-slate-200 dark:border-slate-700/60">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">E-mail:</span>
+                  <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{createdCredentials.email}</span>
+                </div>
+                <div className="flex items-center justify-between py-1 border-b border-slate-200 dark:border-slate-700/60">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Senha Inicial:</span>
+                  <span className="text-xs font-mono font-bold bg-white dark:bg-slate-900 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">{createdCredentials.password}</span>
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Cargo:</span>
+                  <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">{t(createdCredentials.role)}</span>
                 </div>
               </div>
 
-              <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+              <div className="mt-6 space-y-3">
                 <button
-                  onClick={() => setCreatedInviteLink(null)}
-                  className="px-6 py-3 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white rounded-xl text-sm font-bold transition-all"
+                  onClick={() => {
+                    const message = `🔧 Acesso Liberado - CMMS JIMP\n\nOlá ${createdCredentials.fullName}, seu acesso ao sistema está configurado:\n\n🌐 Link de Login: ${createdCredentials.loginUrl}\n📧 Usuário: ${createdCredentials.email}\n🔑 Senha: ${createdCredentials.password}\n\nVocê pode entrar diretamente na tela de login digitando seu e-mail e senha.`;
+                    navigator.clipboard.writeText(message);
+                    setCopiedCreds(true);
+                    toast.success("Dados copiados para a área de transferência!");
+                    setTimeout(() => setCopiedCreds(false), 3000);
+                  }}
+                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
-                  Concluído
+                  {copiedCreds ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                  {copiedCreds ? "Copiado com Sucesso!" : "Copiar Acesso para Enviar (WhatsApp / Teams / E-mail)"}
+                </button>
+
+                <button
+                  onClick={() => setCreatedCredentials(null)}
+                  className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-sm transition-all"
+                >
+                  Concluir
                 </button>
               </div>
             </motion.div>

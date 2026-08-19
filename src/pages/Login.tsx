@@ -132,7 +132,7 @@ export default function Login() {
             {isForgotPassword ? t('reset_password') : isFirstAccess ? t('first_access') : t('restricted_access')}
           </h2>
           <p className="text-[10px] text-slate-400">
-            {isForgotPassword ? t('enter_email_to_reset') : isFirstAccess ? t('first_access_desc') : t('sign_in_credentials')}
+            {isForgotPassword ? t('enter_email_to_reset') : isFirstAccess ? t('first_access_desc') : "Digite seu e-mail (corporativo ou pessoal) e sua senha."}
           </p>
         </div>
 
