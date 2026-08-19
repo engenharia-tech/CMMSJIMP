@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserPlus, Shield, User as UserIcon, Trash2, Mail, Lock, Check, X, AlertCircle, Edit2, KeyRound, Copy, ExternalLink } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/supabase';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
@@ -58,41 +59,122 @@ export default function Users() {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const cleanEmail = formData.email.trim().toLowerCase();
+    const fullName = formData.fullName.trim();
+    const role = formData.role;
+
     try {
-      const response = await fetch('/api/admin/create-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          fullName: formData.fullName,
-          role: formData.role,
-          clientOrigin: window.location.origin
-        })
+      const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+      const supabaseUrl = rawUrl.trim().replace(/\/$/, '');
+      const supabaseAnonKey = rawKey.trim();
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error("Configuração do Supabase ausente. Verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.");
+      }
+
+      // 1. Check if email is already in profiles
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+
+      const origin = window.location.origin.replace(/\/$/, '');
+
+      if (existingProfile) {
+        // If already in profiles, update full_name and role
+        await supabase
+          .from('profiles')
+          .update({
+            full_name: fullName,
+            role: role,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingProfile.id);
+
+        try {
+          await supabase.auth.resetPasswordForEmail(cleanEmail, {
+            redirectTo: `${origin}/reset-password`
+          });
+        } catch (rErr) {
+          console.warn("Reset email notice:", rErr);
+        }
+
+        toast.success(t('user_created_invite_info'));
+        setCreatedInviteLink(`${origin}/reset-password`);
+        setIsAdding(false);
+        setFormData({ email: '', fullName: '', role: 'operator' });
+        await fetchProfiles();
+        return;
+      }
+
+      // 2. Use isolated Supabase client so admin's active session is never altered or replaced
+      const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
       });
 
-      const responseText = await response.text();
-      let result: any = {};
-      try {
-        result = JSON.parse(responseText);
-      } catch (parseErr) {
-        console.error("Non-JSON API response:", responseText);
-        throw new Error(`Erro no servidor (${response.status}): Por favor, verifique se as variáveis do Supabase Admin estão configuradas.`);
+      // 3. Register user with secure temporary password & metadata
+      const tempPassword = 'Jimp#' + Math.random().toString(36).slice(2, 8) + 'X9!';
+      const { data: authData, error: authError } = await tempClient.auth.signUp({
+        email: cleanEmail,
+        password: tempPassword,
+        options: {
+          data: {
+            full_name: fullName,
+            role: role
+          }
+        }
+      });
+
+      if (authError) {
+        const isAlreadyRegistered = authError.message.toLowerCase().includes('already registered') || 
+                                    authError.message.toLowerCase().includes('already exists') ||
+                                    authError.message.toLowerCase().includes('identity already exists');
+
+        if (!isAlreadyRegistered) {
+          throw authError;
+        }
       }
 
-      if (!response.ok) {
-        const errorMsg = result.error === 'user_already_registered' ? t('user_already_registered') : (result.error || t('failed_to_create_account'));
-        throw new Error(errorMsg);
+      // 4. Upsert/ensure user row in public.profiles table
+      if (authData?.user?.id) {
+        try {
+          await supabase.from('profiles').upsert({
+            id: authData.user.id,
+            full_name: fullName,
+            email: cleanEmail,
+            role: role,
+            updated_at: new Date().toISOString()
+          });
+        } catch (profileErr) {
+          console.warn("Profile upsert notice:", profileErr);
+        }
       }
+
+      // 5. Trigger password reset/creation email for the user
+      try {
+        await supabase.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo: `${origin}/reset-password`
+        });
+      } catch (resetErr) {
+        console.warn("Reset password email trigger notice:", resetErr);
+      }
+
+      const inviteLink = `${origin}/reset-password`;
 
       toast.success(t('user_created_invite_info'));
-      if (result.inviteLink) {
-        setCreatedInviteLink(result.inviteLink);
-      }
+      setCreatedInviteLink(inviteLink);
       setIsAdding(false);
       setFormData({ email: '', fullName: '', role: 'operator' });
-      fetchProfiles();
+      await fetchProfiles();
     } catch (error: any) {
-      toast.error(error.message);
+      console.error("Create user error:", error);
+      toast.error(error.message || t('failed_to_create_account'));
     } finally {
       setLoading(false);
     }

@@ -3,5 +3,8 @@
   "description": "Industrial Maintenance Management System (CMMS) for large-scale industry with AI-powered failure analysis and real-time KPIs.",
   "requestFramePermissions": [
     "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]
 }

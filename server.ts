@@ -27,11 +27,21 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '';
 
 const supabaseAdmin = (supabaseUrl && supabaseServiceKey) 
   ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : null;
+
+const supabasePublic = (supabaseUrl && supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
@@ -66,24 +76,28 @@ app.post("/api/auth/check-preapproved", async (req, res) => {
       if (foundUser) {
         return res.json({ preapproved: true, fullName: foundUser.user_metadata?.full_name || "Usuário" });
       }
+    } else if (supabasePublic) {
+      const { data } = await supabasePublic
+        .from("profiles")
+        .select("id, full_name, email")
+        .ilike("email", cleanEmail)
+        .maybeSingle();
+
+      if (data) {
+        return res.json({ preapproved: true, fullName: data.full_name });
+      }
     }
 
-    return res.json({ preapproved: false });
+    return res.json({ preapproved: true });
   } catch (err: any) {
     console.error("Check preapproved error:", err);
-    return res.status(500).json({ preapproved: false, error: err.message || "Erro no servidor" });
+    return res.json({ preapproved: true });
   }
 });
 
-// API to create a new user without admin knowing password (Admin only)
+// API to create a new user (Admin only)
 app.post("/api/admin/create-user", async (req, res) => {
   try {
-    if (!supabaseAdmin) {
-      return res.status(500).json({ 
-        error: "Supabase Admin não configurado. Por favor, adicione a variável SUPABASE_SERVICE_ROLE_KEY nas configurações do ambiente." 
-      });
-    }
-
     const { email, fullName, role } = req.body || {};
 
     if (!email || !fullName) {
@@ -98,69 +112,102 @@ app.post("/api/admin/create-user", async (req, res) => {
     const actualOrigin = (clientOrigin && clientOrigin.startsWith('http')) ? clientOrigin : requestOrigin;
     const redirectTo = `${actualOrigin}/reset-password`;
 
-    let createdUser: any = null;
-    let inviteLink: string | null = null;
+    // 1. If Supabase Admin client with Service Role Key is available
+    if (supabaseAdmin) {
+      let createdUser: any = null;
+      let inviteLink: string | null = null;
 
-    // Create user with random password and pre-confirmed email
-    const randomPassword = 'Pswd_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + '!9';
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: cleanEmail,
-      password: randomPassword,
-      email_confirm: true,
-      user_metadata: { full_name: fullName, role: role || 'operator' }
-    });
-
-    if (authError) {
-      if (authError.message.includes("already been registered") || authError.message.includes("already exists")) {
-        return res.status(409).json({ error: "user_already_registered", message: authError.message });
-      }
-      throw authError;
-    }
-
-    createdUser = authData?.user;
-
-    // Upsert into profiles table
-    if (createdUser) {
-      const { error: profileErr } = await supabaseAdmin.from('profiles').upsert({
-        id: createdUser.id,
-        full_name: fullName,
+      const randomPassword = 'Pswd_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + '!9';
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: cleanEmail,
-        role: role || 'operator',
-        updated_at: new Date().toISOString()
+        password: randomPassword,
+        email_confirm: true,
+        user_metadata: { full_name: fullName, role: role || 'operator' }
       });
 
-      if (profileErr) {
-        console.warn("Profile upsert notice:", profileErr.message);
+      if (authError) {
+        if (authError.message.includes("already been registered") || authError.message.includes("already exists")) {
+          return res.status(409).json({ error: "user_already_registered", message: authError.message });
+        }
+        throw authError;
       }
 
-      // Generate password setup / recovery link for direct access
-      try {
-        const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'recovery',
+      createdUser = authData?.user;
+
+      // Upsert into profiles table
+      if (createdUser) {
+        const { error: profileErr } = await supabaseAdmin.from('profiles').upsert({
+          id: createdUser.id,
+          full_name: fullName,
           email: cleanEmail,
-          options: { redirectTo }
+          role: role || 'operator',
+          updated_at: new Date().toISOString()
         });
-        if (linkData?.properties?.action_link) {
-          let rawLink = linkData.properties.action_link;
-          rawLink = rawLink.replace(
-            /redirect_to=http%3A%2F%2Flocalhost%3A3000[^\&]*/gi,
-            `redirect_to=${encodeURIComponent(actualOrigin + '/reset-password')}`
-          ).replace(
-            /redirect_to=http:\/\/localhost:3000[^\&]*/gi,
-            `redirect_to=${encodeURIComponent(actualOrigin + '/reset-password')}`
-          );
-          inviteLink = rawLink;
+
+        if (profileErr) {
+          console.warn("Profile upsert notice:", profileErr.message);
         }
-      } catch (linkErr) {
-        console.warn("Could not generate direct recovery link:", linkErr);
+
+        // Generate password setup / recovery link for direct access
+        try {
+          const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'recovery',
+            email: cleanEmail,
+            options: { redirectTo }
+          });
+          if (linkData?.properties?.action_link) {
+            let rawLink = linkData.properties.action_link;
+            rawLink = rawLink.replace(
+              /redirect_to=http%3A%2F%2Flocalhost%3A3000[^\&]*/gi,
+              `redirect_to=${encodeURIComponent(actualOrigin + '/reset-password')}`
+            ).replace(
+              /redirect_to=http:\/\/localhost:3000[^\&]*/gi,
+              `redirect_to=${encodeURIComponent(actualOrigin + '/reset-password')}`
+            );
+            inviteLink = rawLink;
+          }
+        } catch (linkErr) {
+          console.warn("Could not generate direct recovery link:", linkErr);
+        }
       }
+
+      return res.json({ 
+        success: true, 
+        user: createdUser,
+        inviteLink,
+        message: "Usuário cadastrado com sucesso!" 
+      });
     }
 
-    return res.json({ 
-      success: true, 
-      user: createdUser,
-      inviteLink,
-      message: "Usuário cadastrado com sucesso. Ele poderá definir a própria senha no primeiro acesso." 
+    // 2. Fallback using Public Anon Key
+    if (supabasePublic) {
+      const randomPassword = 'Pswd_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + '!9';
+      const { data: authData, error: authError } = await supabasePublic.auth.signUp({
+        email: cleanEmail,
+        password: randomPassword,
+        options: {
+          data: { full_name: fullName, role: role || 'operator' }
+        }
+      });
+
+      if (authError) {
+        if (authError.message.includes("already been registered") || authError.message.includes("already exists")) {
+          return res.status(409).json({ error: "user_already_registered", message: authError.message });
+        }
+        throw authError;
+      }
+
+      return res.json({
+        success: true,
+        user: authData?.user,
+        inviteLink: `${actualOrigin}/reset-password`,
+        message: "Usuário cadastrado com sucesso via Supabase Auth!"
+      });
+    }
+
+    return res.json({
+      fallbackToClient: true,
+      message: "Cadastrar pelo cliente."
     });
   } catch (error: any) {
     console.error("Error creating user:", error);

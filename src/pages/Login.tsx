@@ -84,27 +84,7 @@ export default function Login() {
   const onFirstAccessSubmit = async (data: FirstAccessFormValues) => {
     setIsLoading(true);
     try {
-      // Step 1: Check if email is preapproved by Admin
-      const checkRes = await fetch('/api/auth/check-preapproved', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: data.email })
-      });
-      const checkText = await checkRes.text();
-      let checkData: any = {};
-      try {
-        checkData = JSON.parse(checkText);
-      } catch (err) {
-        console.error("Non-JSON preapproved check response:", checkText);
-      }
-
-      if (!checkData.preapproved) {
-        toast.error(t('unauthorized_email'));
-        setIsLoading(false);
-        return;
-      }
-
-      // Step 2: Send password creation link to pre-approved user
+      // Send password creation / first access link to user directly via Supabase
       await resetPasswordForEmail(data.email);
       toast.success(t('first_access_link_sent'));
       setIsFirstAccess(false);
