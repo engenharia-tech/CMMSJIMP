@@ -1,3 +1,16 @@
+-- =====================================================================
+-- ATENCAO: ESTE ARQUIVO E HISTORICO. NAO DESCREVE O BANCO ATUAL.
+--
+-- Ele ja enganou duas vezes em 31/08/2026:
+--   1. dizia que `equipment` nao tinha `photo_url` (tem);
+--   2. os nomes das politicas de seguranca aqui NAO sao os que existem no
+--      banco - por isso os DROP POLICY da migracao 003 nao acertaram nada e
+--      um usuario suspenso continuou lendo tudo.
+--
+-- Para saber o que existe de verdade: docs/banco-real.md
+-- Para mudar o banco: crie uma migracao nova em supabase/migrations/.
+-- =====================================================================
+
 -- Create profiles table
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
