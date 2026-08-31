@@ -38,7 +38,6 @@ export default function Users() {
     email: '',
     fullName: '',
     role: 'operator' as Profile['role'],
-    password: ''
   });
 
   useEffect(() => {
@@ -115,7 +114,7 @@ export default function Users() {
         loginUrl: `${window.location.origin.replace(/\/$/, '')}/login`,
       });
       setIsAdding(false);
-      setFormData({ email: '', fullName: '', role: 'operator', password: '' });
+      setFormData({ email: '', fullName: '', role: 'operator' });
       await fetchProfiles();
     } catch (error: any) {
       console.error("Create user error:", error);
@@ -296,7 +295,7 @@ export default function Users() {
                 <div className="md:col-span-2 p-4 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-2xl flex items-center gap-3.5 text-blue-900 dark:text-blue-200 transition-colors">
                   <KeyRound className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
                   <p className="text-xs font-semibold leading-relaxed">
-                    <strong>Contas Corporativas (não Google) ou Pessoais:</strong> O colaborador entrará normalmente na tela de login digitando seu e-mail corporativo e a senha definida acima.
+                    <strong>Como o colaborador entra:</strong> ele recebe um convite por e-mail, define a própria senha e depois entra na tela de login com o e-mail cadastrado. Ninguém cria conta sozinho neste sistema.
                   </p>
                 </div>
               )}
@@ -510,19 +509,33 @@ export default function Users() {
               </div>
 
               <div className="mt-6 space-y-3">
-                <button
-                  onClick={() => {
-                    const message = `🔧 Acesso Liberado - CMMS JIMP\n\nOlá ${createdCredentials.fullName}, seu acesso ao sistema está configurado:\n\n🌐 Link de Login: ${createdCredentials.loginUrl}\n📧 Usuário: ${createdCredentials.email}\n🔑 Senha: ${createdCredentials.password}\n\nVocê pode entrar diretamente na tela de login digitando seu e-mail e senha.`;
-                    navigator.clipboard.writeText(message);
-                    setCopiedCreds(true);
-                    toast.success("Dados copiados para a área de transferência!");
-                    setTimeout(() => setCopiedCreds(false), 3000);
-                  }}
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
-                >
-                  {copiedCreds ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-                  {copiedCreds ? "Copiado com Sucesso!" : "Copiar Acesso para Enviar (WhatsApp / Teams / E-mail)"}
-                </button>
+                {/* O botao de copiar so aparece quando o e-mail NAO saiu.
+                    Se o convite foi enviado, nao ha nada para repassar a mao -
+                    e nunca ha senha para copiar: quem a define e o colaborador. */}
+                {!createdCredentials.emailEnviado && createdCredentials.inviteLink && (
+                  <button
+                    onClick={() => {
+                      const link = createdCredentials.inviteLink || '';
+                      const message =
+                        `CMMS JIMP - acesso liberado
+
+` +
+                        `Ola ${createdCredentials.fullName}, seu acesso foi liberado.
+` +
+                        `Defina sua senha por este link:
+
+${link}`;
+                      navigator.clipboard.writeText(message);
+                      setCopiedCreds(true);
+                      toast.success("Link copiado. Envie ao colaborador.");
+                      setTimeout(() => setCopiedCreds(false), 3000);
+                    }}
+                    className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
+                  >
+                    {copiedCreds ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                    {copiedCreds ? "Copiado!" : "Copiar link de acesso para enviar"}
+                  </button>
+                )}
 
                 <button
                   onClick={() => setCreatedCredentials(null)}
