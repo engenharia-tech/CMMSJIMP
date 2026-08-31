@@ -58,8 +58,25 @@ export default function ResetPassword() {
   useEffect(() => {
     if (!isSupabaseConfigured) return;
 
-    // Check if hash or search already contains access_token
     const fullUrl = window.location.href;
+
+    // O Supabase devolve o motivo na propria URL quando o link nao serve.
+    // Sem ler isto, a tela mostrava o campo de colar como se colar fosse
+    // resolver - e nao resolve: link vencido nao volta a valer.
+    const motivo = new URLSearchParams(
+      window.location.hash.replace(/^#/, '')
+    ).get('error_code');
+
+    if (motivo) {
+      setError(
+        motivo === 'otp_expired'
+          ? 'Este link expirou ou ja foi usado. Cada convite vale por uma hora e '
+            + 'so pode ser aberto uma vez. Peca um novo em "Esqueci minha senha".'
+          : 'Este link nao e valido. Peca um novo em "Esqueci minha senha".'
+      );
+      return;
+    }
+
     if (fullUrl.includes('access_token=')) {
       tryActivateSessionFromText(fullUrl);
     }
