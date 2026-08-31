@@ -89,8 +89,12 @@ export const deleteEquipment = async (id: string) => {
 };
 
 export const hardDeleteEquipment = async (id: string) => {
-  const { error } = await supabase.from('equipment').delete().eq('id', id);
+  // .select() devolve o que foi apagado. Sem isto, quando a politica do banco
+  // filtra a linha, o Supabase responde 'sucesso, zero linhas' e a tela diz
+  // que apagou - mas o equipamento continua la. Medido em 31/08.
+  const { data, error } = await supabase.from('equipment').delete().eq('id', id).select('id');
   if (error) handleSupabaseError(error, 'DELETE equipment (hard)');
+  if (!data || data.length === 0) throw new Error('Nenhum registro foi alterado. Voce provavelmente nao tem permissao para esta acao - fale com o administrador.');
   await fetchEquipment();
 };
 
@@ -135,7 +139,8 @@ export const updateSettings = async (data: any) => {
   const { data: existing, error: fetchError } = await supabase.from('settings').select('id').single();
   
   if (existing) {
-    const { error } = await supabase.from('settings').update(data).eq('id', existing.id);
+    const { data: salvo, error } = await supabase.from('settings').update(data).eq('id', existing.id).select('id');
+    if (!error && (!salvo || salvo.length === 0)) throw new Error('Nenhum registro foi alterado. Voce provavelmente nao tem permissao para esta acao - fale com o administrador.');
     if (error) handleSupabaseError(error, 'UPDATE settings');
   } else {
     // If it's a PGRST116 (no rows), we insert. Otherwise it might be a real error.
@@ -259,7 +264,8 @@ export const updateOrder = async (id: string, data: Partial<MaintenanceOrder>) =
 };
 
 export const deleteOrder = async (id: string) => {
-  const { error } = await supabase.from('maintenance_orders').delete().eq('id', id);
+  const { data: apagadas, error } = await supabase.from('maintenance_orders').delete().eq('id', id).select('id');
+  if (!error && (!apagadas || apagadas.length === 0)) throw new Error('Nenhum registro foi alterado. Voce provavelmente nao tem permissao para esta acao - fale com o administrador.');
   if (error) handleSupabaseError(error, 'DELETE maintenance_orders');
   await fetchOrders();
 };
@@ -308,7 +314,8 @@ export const updatePart = async (id: string, data: Partial<Part>) => {
 };
 
 export const deletePart = async (id: string) => {
-  const { error } = await supabase.from('parts').delete().eq('id', id);
+  const { data: apagadas, error } = await supabase.from('parts').delete().eq('id', id).select('id');
+  if (!error && (!apagadas || apagadas.length === 0)) throw new Error('Nenhum registro foi alterado. Voce provavelmente nao tem permissao para esta acao - fale com o administrador.');
   if (error) handleSupabaseError(error, 'DELETE parts');
   await fetchParts();
 };

@@ -44,7 +44,8 @@ export const updatePart = async (id: string, data: Partial<Part>) => {
 };
 
 export const deletePart = async (id: string) => {
-  const { error } = await supabase.from('parts').delete().eq('id', id);
+  const { data: apagadas, error } = await supabase.from('parts').delete().eq('id', id).select('id');
+  if (!error && (!apagadas || apagadas.length === 0)) throw new Error('Nenhum registro foi alterado. Voce provavelmente nao tem permissao para esta acao - fale com o administrador.');
   if (error) handleSupabaseError(error, 'DELETE parts');
   await fetchParts();
 };
