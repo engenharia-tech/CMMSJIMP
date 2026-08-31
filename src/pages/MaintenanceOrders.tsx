@@ -32,6 +32,10 @@ export default function MaintenanceOrdersPage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
+  // Busca e filtros: os botoes e o campo existiam desde o inicio, mas sem
+  // nenhuma acao ligada - eram decoracao. Ver commit desta correcao.
+  const [busca, setBusca] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState<'todos' | 'open' | 'in_progress' | 'completed'>('todos');
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -91,7 +95,7 @@ export default function MaintenanceOrdersPage() {
       }
     });
     const unsubEquipment = getEquipment(setEquipment);
-    return () => {
+  return () => {
       unsubOrders();
       unsubEquipment();
     };
@@ -158,6 +162,16 @@ export default function MaintenanceOrdersPage() {
     }).format(value);
   };
 
+  const texto = busca.trim().toLowerCase();
+  const ordensVisiveis = orders.filter((o) => {
+    if (filtroStatus !== 'todos' && o.status !== filtroStatus) return false;
+    if (!texto) return true;
+    const equipamento = equipment.find((e) => e.id === o.equipment_id);
+    return [o.order_number, o.requester, o.problem_description,
+            equipamento?.equipment_name, equipamento?.registration_number]
+      .some((c) => (c || '').toLowerCase().includes(texto));
+  });
+
   return (
     <ErrorBoundary>
       <div className="space-y-8">
@@ -223,6 +237,8 @@ export default function MaintenanceOrdersPage() {
             <input 
               type="text" 
               placeholder={t('search_orders_placeholder')} 
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-colors"
             />
           </div>
@@ -233,14 +249,14 @@ export default function MaintenanceOrdersPage() {
             </button>
             <div className="hidden sm:block h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2 transition-colors" />
             <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors overflow-x-auto">
-              <button className="whitespace-nowrap px-3 py-1 text-xs font-bold bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-md shadow-sm border border-slate-200 dark:border-slate-700 transition-colors">{t('all')}</button>
-              <button className="whitespace-nowrap px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">{t('open')}</button>
-              <button className="whitespace-nowrap px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">{t('in_progress')}</button>
-              <button className="whitespace-nowrap px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">{t('completed')}</button>
+              <button onClick={() => setFiltroStatus('todos')} className={filtroStatus === 'todos' ? "whitespace-nowrap px-3 py-1 text-xs font-bold bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-md shadow-sm border border-slate-200 dark:border-slate-700 transition-colors" : "whitespace-nowrap px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"}>{t('all')}</button>
+              <button onClick={() => setFiltroStatus('open')} className={filtroStatus === 'open' ? "whitespace-nowrap px-3 py-1 text-xs font-bold bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-md shadow-sm border border-slate-200 dark:border-slate-700 transition-colors" : "whitespace-nowrap px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"}>{t('open')}</button>
+              <button onClick={() => setFiltroStatus('in_progress')} className={filtroStatus === 'in_progress' ? "whitespace-nowrap px-3 py-1 text-xs font-bold bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-md shadow-sm border border-slate-200 dark:border-slate-700 transition-colors" : "whitespace-nowrap px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"}>{t('in_progress')}</button>
+              <button onClick={() => setFiltroStatus('completed')} className={filtroStatus === 'completed' ? "whitespace-nowrap px-3 py-1 text-xs font-bold bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-md shadow-sm border border-slate-200 dark:border-slate-700 transition-colors" : "whitespace-nowrap px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"}>{t('completed')}</button>
             </div>
           </div>
 
-          {orders.length === 0 && !loading && (
+          {ordensVisiveis.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                 <ClipboardList className="w-8 h-8 text-slate-300 dark:text-slate-600" />
@@ -266,11 +282,11 @@ export default function MaintenanceOrdersPage() {
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">{t('status')}</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">{t('maintenance_cost')}</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">{t('date')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 text-right">{t('actions')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 text-right sticky right-0 bg-slate-50 dark:bg-slate-900/80 backdrop-blur">{t('actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {orders.map((order) => (
+              {ordensVisiveis.map((order) => (
                 <tr key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group">
                   <td className="px-6 py-4">
                     <span className="font-bold text-slate-900 dark:text-white">{order.order_number}</span>
@@ -329,7 +345,7 @@ export default function MaintenanceOrdersPage() {
                   <td className="px-6 py-4">
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{order.request_date}</span>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800">
                     <div className="flex items-center justify-end gap-2">
                       {order.status !== 'completed' && (
                         <button 
@@ -366,7 +382,7 @@ export default function MaintenanceOrdersPage() {
 
           {/* Mobile View (Cards) */}
           <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-            {orders.map((order) => (
+            {ordensVisiveis.map((order) => (
               <div key={order.id} className="p-4 space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex flex-col">
