@@ -158,7 +158,9 @@ export default function ResetPassword() {
           </div>
           <h2 className="text-xl font-bold text-white mb-2">Primeiro Acesso / Redefinição de Senha</h2>
           <p className="text-slate-400 text-xs mb-6">
-            Se o e-mail redirecionou para uma página que não abriu (ex: <code className="text-amber-400">localhost:3000</code>), copie a URL completa da barra de endereço do seu navegador ou do e-mail e cole no campo abaixo para ativar seu acesso:
+            Este link expirou, já foi usado, ou você chegou aqui direto. Peça um novo em
+            <strong className="text-slate-300"> Entrar → Esqueci minha senha</strong>.
+            Se você tem o link do e-mail em mãos, pode colá-lo aqui:
           </p>
 
           <form onSubmit={handleManualActivate} className="space-y-4 mb-6">
@@ -167,7 +169,7 @@ export default function ResetPassword() {
                 type="text"
                 value={pastedUrl}
                 onChange={(e) => setPastedUrl(e.target.value)}
-                placeholder="Cole o link recebido (ex: http://localhost:3000/#access_token=...)"
+                placeholder="Cole aqui o link que voce recebeu por e-mail"
                 className="w-full bg-white/10 border border-white/20 rounded-xl py-3.5 px-4 text-xs font-mono text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               />
             </div>
