@@ -68,7 +68,11 @@ export default function ResetPassword() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event on reset page:', event);
       
-      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+      // So PASSWORD_RECOVERY conta: e o evento que o Supabase dispara quando a
+      // sessao nasce de um link de recuperacao. SIGNED_IN tambem acontece para
+      // um login comum - e ai o formulario trocaria a senha de quem ja estava
+      // logado.
+      if (event === 'PASSWORD_RECOVERY') {
         console.log('Recovery session established');
         setIsSessionReady(true);
         setError(null);
@@ -77,10 +81,28 @@ export default function ResetPassword() {
 
     const checkInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log('Initial session found');
+
+      // ATENCAO: sessao que ja existia NAO libera o formulario.
+      //
+      // Se um administrador logado abre um convite ja usado (a URL vem sem
+      // token), a sessao encontrada aqui e a DELE. Liberar o formulario faria
+      // ele trocar a PROPRIA senha achando que estava definindo a de outra
+      // pessoa - foi o que aconteceu com o Edson em 31/08. So vale a sessao
+      // que nasceu do link, nesta abertura de pagina.
+      const veioDoLink = window.location.href.includes('access_token=');
+
+      if (session && !veioDoLink) {
+        setError(
+          'Este link nao esta ativo. Voce ja esta conectado em outra conta neste ' +
+          'navegador, e por seguranca nao vamos trocar a senha dela. Peca um novo ' +
+          'link em "Esqueci minha senha", de preferencia numa janela anonima.'
+        );
+        return;
+      }
+
+      if (session && veioDoLink) {
         setIsSessionReady(true);
-      } else {
+      } else if (!session) {
         // If no session after 2.5 seconds, set error message so paste UI is accessible
         setTimeout(() => {
           if (!isSessionReady && !window.location.href.includes('access_token=')) {
