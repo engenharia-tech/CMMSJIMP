@@ -1,12 +1,16 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createServer as createViteServer } from "vite";
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
+import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import fs from "fs";
 
+// .env.local primeiro: e o arquivo que o projeto usa (convencao do Vite) e
+// o dotenv nao sobrescreve o que ja leu. Sem isto o servidor local sobe sem
+// Supabase nenhum e recusa ate sessao valida com "faca login".
+dotenv.config({ path: ".env.local" });
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -49,169 +53,317 @@ const supabasePublic = (supabaseUrl && supabaseAnonKey)
     })
   : null;
 
-// API to check if an email is pre-approved/added by Admin (Public route)
-app.post("/api/auth/check-preapproved", async (req, res) => {
+// ---------------------------------------------------------------------
+// CADASTRO DE USUARIO — SO O ADMIN
+//
+// Desejo do Edson (31/08/2026): ninguem cria a propria conta. O admin
+// autoriza pela tela de Administracao e a pessoa recebe um convite por
+// e-mail para definir a senha.
+//
+// Tres travas, nesta ordem:
+//   1. quem chamou precisa ter sessao valida E papel 'admin' (aqui);
+//   2. o e-mail entra em usuarios_autorizados (a lista de convidados);
+//   3. o porteiro no banco (migracao 002) recusa qualquer cadastro que
+//      nao esteja na lista — inclusive por fora desta rota.
+// ---------------------------------------------------------------------
+
+async function exigeAdmin(req: express.Request) {
+  const user = await usuarioDaRequisicao(req);
+  if (!user) return { erro: 401, msg: "Faça login para continuar." };
+  if (!supabaseAdmin) return { erro: 503, msg: "Servidor sem credencial administrativa." };
+
+  const { data: perfil } = await supabaseAdmin
+    .from("profiles").select("role").eq("id", user.id).maybeSingle();
+
+  if (perfil?.role !== "admin") {
+    return { erro: 403, msg: "Somente o administrador cadastra usuários." };
+  }
+  return { user };
+}
+
+function transporteDeEmail() {
+  const host = process.env.EMAIL_HOST;
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+  if (!host || !user || !pass) return null;
+
+  const port = parseInt(process.env.EMAIL_PORT || "587", 10);
+  return nodemailer.createTransport({
+    host, port, secure: port === 465, auth: { user, pass }
+  });
+}
+
+async function enviaConvite(para: string, nome: string, link: string) {
+  const transporte = transporteDeEmail();
+  if (!transporte) return { enviado: false, motivo: "E-mail não configurado no servidor." };
+
+  const corpo = `
+    <div style="font-family:Segoe UI,Arial,sans-serif;max-width:520px;margin:0 auto;color:#0f172a">
+      <h2 style="margin-bottom:4px">Bem-vindo ao CMMS JIMP</h2>
+      <p style="color:#475569;margin-top:0">Gestão de Manutenção — Joinville Implementos</p>
+      <p>Olá, <strong>${nome}</strong>. Seu acesso foi liberado pelo administrador.</p>
+      <p>Clique abaixo para definir sua senha e entrar:</p>
+      <p style="margin:28px 0">
+        <a href="${link}" style="background:#2563eb;color:#fff;padding:14px 28px;
+           border-radius:12px;text-decoration:none;font-weight:bold;display:inline-block">
+          Definir minha senha
+        </a>
+      </p>
+      <p style="color:#64748b;font-size:13px">
+        Se o botão não funcionar, copie este endereço no navegador:<br>
+        <span style="word-break:break-all">${link}</span>
+      </p>
+      <p style="color:#94a3b8;font-size:12px;margin-top:28px">
+        Você recebeu este convite porque o administrador cadastrou seu e-mail.
+        Não é possível criar conta por conta própria neste sistema.
+      </p>
+    </div>`;
+
   try {
-    const { email } = req.body || {};
-    if (!email || typeof email !== "string") {
-      return res.status(400).json({ preapproved: false, error: "Email inválido" });
-    }
-
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (supabaseAdmin) {
-      const { data } = await supabaseAdmin
-        .from("profiles")
-        .select("id, full_name, email")
-        .ilike("email", cleanEmail)
-        .maybeSingle();
-
-      if (data) {
-        return res.json({ preapproved: true, fullName: data.full_name });
-      }
-
-      // Also check auth.users directly via admin client if profiles row not found
-      const { data: userData } = await supabaseAdmin.auth.admin.listUsers();
-      const foundUser = userData?.users?.find((u: any) => u.email?.toLowerCase() === cleanEmail);
-      if (foundUser) {
-        return res.json({ preapproved: true, fullName: foundUser.user_metadata?.full_name || "Usuário" });
-      }
-    } else if (supabasePublic) {
-      const { data } = await supabasePublic
-        .from("profiles")
-        .select("id, full_name, email")
-        .ilike("email", cleanEmail)
-        .maybeSingle();
-
-      if (data) {
-        return res.json({ preapproved: true, fullName: data.full_name });
-      }
-    }
-
-    return res.json({ preapproved: true });
+    await transporte.sendMail({
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      to: para,
+      subject: "Seu acesso ao CMMS JIMP",
+      html: corpo,
+    });
+    return { enviado: true };
   } catch (err: any) {
-    console.error("Check preapproved error:", err);
-    return res.json({ preapproved: true });
+    console.error("Falha ao enviar convite:", err?.message || err);
+    return { enviado: false, motivo: "Não foi possível enviar o e-mail agora." };
+  }
+}
+
+app.post("/api/admin/create-user", async (req, res) => {
+  try {
+    const porteiro = await exigeAdmin(req);
+    if (porteiro.erro) return res.status(porteiro.erro).json({ error: porteiro.msg });
+
+    const { email, fullName, role } = req.body || {};
+    if (!email || !fullName) {
+      return res.status(400).json({ error: "E-mail e nome completo são obrigatórios." });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const papel = ["admin", "engineer", "operator"].includes(role) ? role : "operator";
+
+    const clientOrigin = req.body?.clientOrigin;
+    const protocol = req.headers["x-forwarded-proto"] || "https";
+    const requestOrigin = req.headers.origin || `${protocol}://${req.headers.host}`;
+    const origem = (clientOrigin && String(clientOrigin).startsWith("http")) ? clientOrigin : requestOrigin;
+    const redirectTo = `${origem}/reset-password`;
+
+    const admin = supabaseAdmin!;
+
+    // 1. entra na lista de convidados (sem isto, o porteiro do banco recusa)
+    const { error: erroLista } = await admin.from("usuarios_autorizados").upsert({
+      email: cleanEmail,
+      full_name: fullName,
+      role: papel,
+      autorizado_por: porteiro.user!.email || "admin",
+    }, { onConflict: "email" });
+
+    if (erroLista) {
+      console.error("Erro ao autorizar e-mail:", erroLista.message);
+      return res.status(500).json({ error: "Não foi possível autorizar este e-mail." });
+    }
+
+    // 2. cria a conta
+    const senhaTemporaria = "Tmp_" + Math.random().toString(36).slice(2) +
+                            Math.random().toString(36).slice(2) + "!9";
+    const { data: authData, error: authError } = await admin.auth.admin.createUser({
+      email: cleanEmail,
+      password: senhaTemporaria,
+      email_confirm: true,
+      user_metadata: { full_name: fullName },
+    });
+
+    if (authError) {
+      const jaExiste = /already been registered|already exists/i.test(authError.message || "");
+      if (jaExiste) {
+        return res.status(409).json({ error: "Este e-mail já tem conta no sistema." });
+      }
+      throw authError;
+    }
+
+    const criado = authData?.user;
+
+    // 3. garante o perfil com o papel que o ADMIN escolheu
+    if (criado) {
+      await admin.from("profiles").upsert({
+        id: criado.id,
+        full_name: fullName,
+        email: cleanEmail,
+        role: papel,
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    // 4. gera o link de definicao de senha e manda por e-mail
+    let inviteLink: string | null = null;
+    try {
+      const { data: linkData } = await admin.auth.admin.generateLink({
+        type: "recovery", email: cleanEmail, options: { redirectTo },
+      });
+      inviteLink = linkData?.properties?.action_link || null;
+    } catch (err) {
+      console.warn("Nao foi possivel gerar o link de convite:", err);
+    }
+
+    const envio = inviteLink
+      ? await enviaConvite(cleanEmail, fullName, inviteLink)
+      : { enviado: false, motivo: "Não foi possível gerar o link de acesso." };
+
+    return res.json({
+      success: true,
+      emailEnviado: envio.enviado,
+      aviso: envio.enviado ? null : envio.motivo,
+      // o link so volta para a tela quando o e-mail nao saiu, para o
+      // admin poder repassar a mao. Nunca aparece se o convite foi enviado.
+      inviteLink: envio.enviado ? null : inviteLink,
+      message: envio.enviado
+        ? `Convite enviado para ${cleanEmail}.`
+        : `Usuário criado, mas o convite não foi enviado.`,
+    });
+  } catch (error: any) {
+    console.error("Erro ao criar usuário:", error?.message || error);
+    return res.status(500).json({ error: "Erro ao criar usuário." });
   }
 });
 
-// API to create a new user (Admin only)
-app.post("/api/admin/create-user", async (req, res) => {
+// ---------------------------------------------------------------------
+// IA (Gemini)
+//
+// A chave NUNCA vai para o navegador: ela vive só aqui, no servidor.
+// O navegador manda os dados que já tem na tela e recebe o texto pronto.
+// Exigimos login — senão qualquer um na internet gasta a cota do Gemini.
+// ---------------------------------------------------------------------
+
+const GEMINI_MODEL = "gemini-3-flash-preview";
+
+async function usuarioDaRequisicao(req: express.Request) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!token || !supabasePublic) return null;
+  const { data, error } = await supabasePublic.auth.getUser(token);
+  if (error) return null;
+  return data?.user || null;
+}
+
+function clienteGemini() {
+  const apiKey = process.env.GEMINI_API_KEY || "";
+  if (!apiKey) return null;
+  return new GoogleGenAI({ apiKey });
+}
+
+function resumoDoParque(equipment: any[], orders: any[], comCusto: boolean) {
+  const eq = (equipment || []).map((e: any) => ({
+    nome: e.equipment_name, setor: e.sector,
+    criticidade: e.criticality, status: e.status
+  }));
+  const om = (orders || []).map((o: any) => {
+    const base: any = {
+      equipamento: o.equipment_id, tipo: o.action_type,
+      causa: o.root_cause, descricao: o.problem_description
+    };
+    if (comCusto) {
+      base.custo = o.maintenance_cost;
+      base.tempo_parada = o.downtime_hours;
+    } else {
+      base.data = o.request_date;
+    }
+    return base;
+  });
+  return { eq, om };
+}
+
+app.post("/api/ai/analyze", async (req, res) => {
   try {
-    const { email, fullName, role } = req.body || {};
+    const user = await usuarioDaRequisicao(req);
+    if (!user) return res.status(401).json({ error: "Faça login para usar a análise." });
 
-    if (!email || !fullName) {
-      return res.status(400).json({ error: "E-mail e Nome Completo são obrigatórios." });
-    }
+    const ai = clienteGemini();
+    if (!ai) return res.status(503).json({ error: "A análise por IA não está configurada neste servidor." });
 
-    const cleanEmail = email.trim().toLowerCase();
-    const clientOrigin = req.body?.clientOrigin;
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers.host;
-    const requestOrigin = req.headers.origin || `${protocol}://${host}`;
-    const actualOrigin = (clientOrigin && clientOrigin.startsWith('http')) ? clientOrigin : requestOrigin;
-    const redirectTo = `${actualOrigin}/reset-password`;
+    const { equipment, orders } = req.body || {};
+    const { eq, om } = resumoDoParque(equipment, orders, true);
 
-    // 1. If Supabase Admin client with Service Role Key is available
-    if (supabaseAdmin) {
-      let createdUser: any = null;
-      let inviteLink: string | null = null;
+    const prompt = `
+    Analise os seguintes dados de manutenção industrial e forneça um relatório detalhado em formato JSON.
 
-      const randomPassword = 'Pswd_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + '!9';
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: cleanEmail,
-        password: randomPassword,
-        email_confirm: true,
-        user_metadata: { full_name: fullName, role: role || 'operator' }
-      });
+    Equipamentos: ${JSON.stringify(eq)}
+    Ordens de Manutenção: ${JSON.stringify(om)}
 
-      if (authError) {
-        if (authError.message.includes("already been registered") || authError.message.includes("already exists")) {
-          return res.status(409).json({ error: "user_already_registered", message: authError.message });
-        }
-        throw authError;
-      }
+    O relatório deve incluir:
+    1. Padrões de falha recorrentes detectados.
+    2. Intervalos de manutenção preventiva sugeridos para equipamentos críticos.
+    3. Previsões de possíveis falhas iminentes.
+    4. Um resumo dos equipamentos mais críticos com base na frequência de falhas e custo.
 
-      createdUser = authData?.user;
+    Retorne APENAS um objeto JSON com a seguinte estrutura:
+    {
+      "patterns": ["padrão 1", "padrão 2"],
+      "suggestions": [{"equipment": "nome", "interval": "15 dias", "reason": "motivo"}],
+      "predictions": [{"equipment": "nome", "risk": "alto", "reason": "motivo"}],
+      "critical_summary": "texto do resumo"
+    }`;
 
-      // Upsert into profiles table
-      if (createdUser) {
-        const { error: profileErr } = await supabaseAdmin.from('profiles').upsert({
-          id: createdUser.id,
-          full_name: fullName,
-          email: cleanEmail,
-          role: role || 'operator',
-          updated_at: new Date().toISOString()
-        });
-
-        if (profileErr) {
-          console.warn("Profile upsert notice:", profileErr.message);
-        }
-
-        // Generate password setup / recovery link for direct access
-        try {
-          const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'recovery',
-            email: cleanEmail,
-            options: { redirectTo }
-          });
-          if (linkData?.properties?.action_link) {
-            let rawLink = linkData.properties.action_link;
-            rawLink = rawLink.replace(
-              /redirect_to=http%3A%2F%2Flocalhost%3A3000[^\&]*/gi,
-              `redirect_to=${encodeURIComponent(actualOrigin + '/reset-password')}`
-            ).replace(
-              /redirect_to=http:\/\/localhost:3000[^\&]*/gi,
-              `redirect_to=${encodeURIComponent(actualOrigin + '/reset-password')}`
-            );
-            inviteLink = rawLink;
-          }
-        } catch (linkErr) {
-          console.warn("Could not generate direct recovery link:", linkErr);
-        }
-      }
-
-      return res.json({ 
-        success: true, 
-        user: createdUser,
-        inviteLink,
-        message: "Usuário cadastrado com sucesso!" 
-      });
-    }
-
-    // 2. Fallback using Public Anon Key
-    if (supabasePublic) {
-      const randomPassword = 'Pswd_' + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + '!9';
-      const { data: authData, error: authError } = await supabasePublic.auth.signUp({
-        email: cleanEmail,
-        password: randomPassword,
-        options: {
-          data: { full_name: fullName, role: role || 'operator' }
-        }
-      });
-
-      if (authError) {
-        if (authError.message.includes("already been registered") || authError.message.includes("already exists")) {
-          return res.status(409).json({ error: "user_already_registered", message: authError.message });
-        }
-        throw authError;
-      }
-
-      return res.json({
-        success: true,
-        user: authData?.user,
-        inviteLink: `${actualOrigin}/reset-password`,
-        message: "Usuário cadastrado com sucesso via Supabase Auth!"
-      });
-    }
-
-    return res.json({
-      fallbackToClient: true,
-      message: "Cadastrar pelo cliente."
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+      config: { responseMimeType: "application/json" }
     });
-  } catch (error: any) {
-    console.error("Error creating user:", error);
-    return res.status(500).json({ error: error?.message || "Erro ao criar usuário" });
+
+    const text = response.text;
+    if (!text) return res.status(502).json({ error: "A IA não devolveu resposta." });
+
+    const limpo = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    try {
+      return res.json(JSON.parse(limpo));
+    } catch {
+      return res.status(502).json({ error: "A IA devolveu uma resposta que não pôde ser lida." });
+    }
+  } catch (err: any) {
+    console.error("Erro na análise por IA:", err?.message || err);
+    return res.status(500).json({ error: "Não foi possível concluir a análise." });
+  }
+});
+
+app.post("/api/ai/ask", async (req, res) => {
+  try {
+    const user = await usuarioDaRequisicao(req);
+    if (!user) return res.status(401).json({ error: "Faça login para conversar com a IA." });
+
+    const ai = clienteGemini();
+    if (!ai) return res.status(503).json({ error: "A IA não está configurada neste servidor." });
+
+    const { question, equipment, orders } = req.body || {};
+    if (!question || typeof question !== "string") {
+      return res.status(400).json({ error: "Pergunta vazia." });
+    }
+
+    const { eq, om } = resumoDoParque(equipment, orders, false);
+
+    const contexto = `
+    Contexto de Manutenção Industrial:
+    Equipamentos: ${JSON.stringify(eq)}
+    Histórico de Ordens: ${JSON.stringify(om)}`;
+
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [
+        { role: "user", parts: [{ text: `${contexto}
+
+Pergunta do usuário: ${question}` }] }
+      ],
+      config: {
+        systemInstruction: "Você é um especialista em manutenção industrial. Responda de forma concisa e técnica em português, baseando-se apenas nos dados fornecidos."
+      }
+    });
+
+    return res.json({ answer: response.text || "Não foi possível gerar uma resposta." });
+  } catch (err: any) {
+    console.error("Erro na pergunta à IA:", err?.message || err);
+    return res.status(500).json({ error: "Não foi possível responder agora." });
   }
 });
 
@@ -240,6 +392,10 @@ async function startServer() {
     });
   } else if (!isVercel) {
     console.log("Mode: Development (Using Vite middleware)");
+    // Importado AQUI, e nao no topo: na Vercel esta funcao vira serverless e
+    // o vite (ferramenta de desenvolvimento) nao carrega la. Importar no topo
+    // derrubava a funcao inteira antes de qualquer rota - ate a /api/health.
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

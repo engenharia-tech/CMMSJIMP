@@ -62,20 +62,8 @@ export const signInWithEmail = async (email: string, password: string) => {
   }
 };
 
-export const signUpWithEmail = async (email: string, password: string, fullName: string) => {
-  if (!isSupabaseConfigured) throw new Error('Supabase is not configured');
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName,
-      },
-    },
-  });
-  if (error) throw error;
-  return data;
-};
+// signUpWithEmail foi removido: ninguem cria a propria conta neste
+// sistema. O admin cadastra pela tela de Administracao (ver migracao 002).
 
 export const signInWithGoogle = async () => {
   if (!isSupabaseConfigured) throw new Error('Supabase is not configured');
@@ -108,6 +96,28 @@ export const resetPasswordForEmail = async (email: string) => {
   });
   if (error) throw error;
   return data;
+};
+
+/**
+ * Pergunta ao banco se este usuario ainda esta na lista de autorizados.
+ *
+ * Falha ABERTA de proposito: se a rede cair, nao deslogamos ninguem. Quem
+ * protege de verdade sao as politicas do banco (migracao 003) - um suspenso
+ * nao le nada de qualquer jeito. Esta checagem existe para DAR O RECADO,
+ * nao para ser a tranca.
+ */
+export const verificaAcesso = async (): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('meu_acesso');
+    if (error) {
+      console.warn('Nao foi possivel verificar o acesso:', error.message);
+      return true;
+    }
+    return data !== false;
+  } catch (err) {
+    console.warn('Falha ao verificar acesso:', err);
+    return true;
+  }
 };
 
 export const getUserProfile = async (userId: string) => {

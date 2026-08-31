@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { Toaster } from 'sonner';
-import { supabase, getUserProfile, isSupabaseConfigured } from './supabase';
+import { Toaster, toast } from 'sonner';
+import { supabase, getUserProfile, isSupabaseConfigured, verificaAcesso, signOut } from './supabase';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import './i18n';
@@ -40,6 +40,13 @@ export default function App() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
+          // Saiu da lista de autorizados? Encerra a sessao e diz por que.
+          if (!(await verificaAcesso())) {
+            await signOut();
+            setUser(null);
+            toast.error('Seu acesso foi encerrado pelo administrador.');
+            return;
+          }
           const profile = await getUserProfile(session.user.id);
           setUser({ 
             ...session.user, 
@@ -68,7 +75,12 @@ export default function App() {
       console.log('Auth state change event:', event, 'User:', session?.user?.email);
       try {
         if (session?.user) {
-          console.log('Fetching profile for user after auth change...');
+          if (!(await verificaAcesso())) {
+            await signOut();
+            setUser(null);
+            toast.error('Seu acesso foi encerrado pelo administrador.');
+            return;
+          }
           const profile = await getUserProfile(session.user.id);
           console.log('Profile loaded:', profile?.role);
           setUser({ 

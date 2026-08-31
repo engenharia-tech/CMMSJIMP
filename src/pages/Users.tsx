@@ -30,7 +30,9 @@ export default function Users() {
     email: string;
     fullName: string;
     role: string;
-    password: string;
+    inviteLink?: string | null;
+    emailEnviado: boolean;
+    aviso?: string | null;
     loginUrl: string;
   } | null>(null);
   const [formData, setFormData] = useState({
@@ -74,107 +76,47 @@ export default function Users() {
     const role = formData.role;
 
     try {
-      const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
-      const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-      const supabaseUrl = rawUrl.trim().replace(/\/$/, '');
-      const supabaseAnonKey = rawKey.trim();
+      // O navegador NAO cria mais a conta. Quem cria e o servidor, que
+      // antes confere se quem pediu e admin. Ver server.ts e a migracao 002.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sua sessao expirou. Entre novamente.");
 
-      if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error("Configuração do Supabase ausente. Verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.");
-      }
-
-      // 1. Check if email is already in profiles
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .ilike('email', cleanEmail)
-        .maybeSingle();
-
-      const origin = window.location.origin.replace(/\/$/, '');
-      const loginUrl = `${origin}/login`;
-      const userPassword = formData.password.trim() || 'Jimp@2026';
-
-      if (existingProfile) {
-        // If already in profiles, update full_name and role
-        await supabase
-          .from('profiles')
-          .update({
-            full_name: fullName,
-            role: role,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingProfile.id);
-
-        toast.success(`Colaborador ${fullName} atualizado no sistema!`);
-        setCreatedCredentials({
+      const resposta = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
           email: cleanEmail,
           fullName,
           role,
-          password: userPassword,
-          loginUrl
-        });
-        setIsAdding(false);
-        setFormData({ email: '', fullName: '', role: 'operator', password: 'Jimp@2026' });
-        await fetchProfiles();
-        return;
-      }
-
-      // 2. Use isolated Supabase client so admin's active session is never altered or replaced
-      const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false
-        }
+          clientOrigin: window.location.origin.replace(/\/$/, ''),
+        }),
       });
 
-      // 3. Register user with chosen initial password & metadata
-      const { data: authData, error: authError } = await tempClient.auth.signUp({
-        email: cleanEmail,
-        password: userPassword,
-        options: {
-          data: {
-            full_name: fullName,
-            role: role
-          }
-        }
-      });
-
-      if (authError) {
-        const isAlreadyRegistered = authError.message.toLowerCase().includes('already registered') || 
-                                    authError.message.toLowerCase().includes('already exists') ||
-                                    authError.message.toLowerCase().includes('identity already exists');
-
-        if (!isAlreadyRegistered) {
-          throw authError;
-        }
+      const dados = await resposta.json().catch(() => null);
+      if (!resposta.ok) {
+        throw new Error(dados?.error || "Nao foi possivel cadastrar o colaborador.");
       }
 
-      // 4. Upsert/ensure user row in public.profiles table
-      if (authData?.user?.id) {
-        try {
-          await supabase.from('profiles').upsert({
-            id: authData.user.id,
-            full_name: fullName,
-            email: cleanEmail,
-            role: role,
-            updated_at: new Date().toISOString()
-          });
-        } catch (profileErr) {
-          console.warn("Profile upsert notice:", profileErr);
-        }
+      if (dados.emailEnviado) {
+        toast.success(`Convite enviado para ${cleanEmail}`);
+      } else {
+        toast.warning(dados.aviso || "Usuario criado, mas o convite nao saiu.");
       }
 
-      toast.success(`Colaborador ${fullName} cadastrado com sucesso!`);
       setCreatedCredentials({
         email: cleanEmail,
         fullName,
         role,
-        password: userPassword,
-        loginUrl
+        emailEnviado: !!dados.emailEnviado,
+        inviteLink: dados.inviteLink || null,
+        aviso: dados.aviso || null,
+        loginUrl: `${window.location.origin.replace(/\/$/, '')}/login`,
       });
       setIsAdding(false);
-      setFormData({ email: '', fullName: '', role: 'operator', password: 'Jimp@2026' });
+      setFormData({ email: '', fullName: '', role: 'operator', password: '' });
       await fetchProfiles();
     } catch (error: any) {
       console.error("Create user error:", error);
@@ -556,8 +498,14 @@ export default function Users() {
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white">Acesso Liberado com Sucesso!</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">O colaborador pode entrar com estas credenciais (conta corporativa ou pessoal):</p>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                    {createdCredentials.emailEnviado ? 'Convite enviado!' : 'Colaborador cadastrado'}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {createdCredentials.emailEnviado
+                      ? 'O colaborador recebeu um e-mail para definir a propria senha.'
+                      : 'A conta foi criada, mas o convite por e-mail nao saiu.'}
+                  </p>
                 </div>
               </div>
 
@@ -571,8 +519,8 @@ export default function Users() {
                   <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{createdCredentials.email}</span>
                 </div>
                 <div className="flex items-center justify-between py-1 border-b border-slate-200 dark:border-slate-700/60">
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Senha Inicial:</span>
-                  <span className="text-xs font-mono font-bold bg-white dark:bg-slate-900 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">{createdCredentials.password}</span>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Senha:</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">definida pelo proprio colaborador</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Cargo:</span>

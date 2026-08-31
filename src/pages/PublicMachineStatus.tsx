@@ -32,26 +32,22 @@ export default function PublicMachineStatus() {
       
       try {
         setLoading(true);
-        // Fetch equipment
+        // Esta pagina e publica (QR Code na maquina), entao NAO le as tabelas
+        // direto: usa funcoes que devolvem so as colunas que podem aparecer
+        // no chao de fabrica. Ver supabase/migrations/001.
         const { data: eqData, error: eqError } = await supabase
-          .from('equipment')
-          .select('*')
-          .eq('id', id)
-          .single();
+          .rpc('get_public_machine_status', { p_id: id })
+          .maybeSingle();
 
         if (eqError) throw eqError;
-        setEquipment(eqData);
+        if (!eqData) throw new Error('Equipamento nao encontrado');
+        setEquipment(eqData as Equipment);
 
-        // Fetch active maintenance orders
         const { data: ordersData, error: ordersError } = await supabase
-          .from('maintenance_orders')
-          .select('*')
-          .eq('equipment_id', id)
-          .neq('status', 'completed')
-          .order('created_at', { ascending: false });
+          .rpc('get_public_machine_orders', { p_id: id });
 
         if (ordersError) throw ordersError;
-        setActiveOrders(ordersData || []);
+        setActiveOrders((ordersData || []) as MaintenanceOrder[]);
 
       } catch (err: any) {
         console.error('Error fetching public status:', err);
@@ -189,7 +185,7 @@ export default function PublicMachineStatus() {
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Descrição do Problema</p>
                     <p className="text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
-                      {order.description || 'Nenhuma descrição detalhada fornecida.'}
+                      {order.problem_description || 'Nenhuma descrição detalhada fornecida.'}
                     </p>
                   </div>
                 </div>
