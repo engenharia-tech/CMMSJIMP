@@ -77,22 +77,10 @@ export default function MaintenanceOrdersPage() {
       setOrders(data);
       setLoading(false);
 
-      // Fetch profiles for creators
-      const creatorIds = Array.from(new Set(data.map(o => o.created_by).filter(Boolean)));
-      if (creatorIds.length > 0) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', creatorIds);
-        
-        if (profileData) {
-          const profileMap: Record<string, string> = {};
-          profileData.forEach(p => {
-            profileMap[p.id] = p.full_name;
-          });
-          setProfiles(profileMap);
-        }
-      }
+      // Os nomes dos autores sao carregados em outro efeito, nao aqui:
+      // dentro deste retorno a busca podia rodar antes de a sessao estar
+      // pronta, falhar em silencio e a coluna ficar 'unknown_user' para
+      // sempre - nada refazia a tentativa.
     });
     const unsubEquipment = getEquipment(setEquipment);
   return () => {
@@ -161,6 +149,29 @@ export default function MaintenanceOrdersPage() {
       currency: i18n.language === 'pt' ? 'BRL' : 'USD'
     }).format(value);
   };
+
+  // Carrega os nomes de quem criou as ordens. Tenta de novo se vier vazio:
+  // logo apos o login a consulta pode chegar antes da sessao.
+  useEffect(() => {
+    let cancelado = false;
+    let tentativas = 0;
+
+    const carregar = async () => {
+      const { data } = await supabase.from('profiles').select('id, full_name');
+      if (cancelado) return;
+      if (data && data.length > 0) {
+        const mapa: Record<string, string> = {};
+        data.forEach((p: any) => { mapa[p.id] = p.full_name; });
+        setProfiles(mapa);
+      } else if (tentativas < 3) {
+        tentativas += 1;
+        setTimeout(carregar, 800 * tentativas);
+      }
+    };
+
+    carregar();
+    return () => { cancelado = true; };
+  }, []);
 
   const texto = busca.trim().toLowerCase();
   const ordensVisiveis = orders.filter((o) => {
