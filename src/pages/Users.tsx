@@ -400,8 +400,20 @@ export default function Users() {
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{t('active')}</span>
+                      {(() => {
+                        // O status precisa contar a mesma historia do selo ao
+                        // lado do nome. Antes dizia "Ativo" mesmo para quem
+                        // estava suspenso.
+                        const ativo = acessos[(profile.email || '').trim().toLowerCase()] !== false;
+                        return (
+                          <>
+                            <div className={`w-2 h-2 rounded-full ${ativo ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
+                            <span className={`text-xs font-bold ${ativo ? 'text-slate-600 dark:text-slate-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                              {ativo ? t('active') : 'Suspenso'}
+                            </span>
+                          </>
+                        );
+                      })()}
                     </div>
                   </td>
                   <td className="px-8 py-6 text-right">
@@ -514,8 +526,20 @@ export default function Users() {
                   {t(profile.role)}
                 </span>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{t('active')}</span>
+                  {(() => {
+                    // O status precisa contar a mesma historia do selo ao
+                    // lado do nome. Antes dizia "Ativo" mesmo para quem
+                    // estava suspenso.
+                    const ativo = acessos[(profile.email || '').trim().toLowerCase()] !== false;
+                    return (
+                      <>
+                        <div className={`w-2 h-2 rounded-full ${ativo ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
+                        <span className={`text-xs font-bold ${ativo ? 'text-slate-600 dark:text-slate-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                          {ativo ? t('active') : 'Suspenso'}
+                        </span>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
