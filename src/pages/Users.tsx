@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Shield, User as UserIcon, Trash2, Mail, Lock, Check, X, AlertCircle, Edit2, KeyRound, Copy, ExternalLink, Eye, EyeOff, CheckCircle2, Share2 } from 'lucide-react';
+import { UserPlus, Ban, ShieldCheck, Shield, User as UserIcon, Trash2, Mail, Lock, Check, X, AlertCircle, Edit2, KeyRound, Copy, ExternalLink, Eye, EyeOff, CheckCircle2, Share2 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/supabase';
 import { toast } from 'sonner';
@@ -40,9 +40,48 @@ export default function Users() {
     role: 'operator' as Profile['role'],
   });
 
+  // email -> ativo. Vem de usuarios_autorizados, que so o admin le (RLS).
+  const [acessos, setAcessos] = useState<Record<string, boolean>>({});
+  const [mudandoAcesso, setMudandoAcesso] = useState<string | null>(null);
+
   useEffect(() => {
     fetchProfiles();
   }, []);
+
+  const chamarApi = async (rota: string, corpo: unknown) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Sua sessao expirou. Entre novamente.");
+    const r = await fetch(rota, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(corpo),
+    });
+    const dados = await r.json().catch(() => null);
+    if (!r.ok) throw new Error(dados?.error || 'Nao foi possivel concluir.');
+    return dados;
+  };
+
+  const alternarAcesso = async (profile: Profile) => {
+    const email = (profile.email || '').trim().toLowerCase();
+    if (!email) {
+      toast.error('Este usuario nao tem e-mail cadastrado.');
+      return;
+    }
+    const ativoAgora = acessos[email] !== false;
+    setMudandoAcesso(email);
+    try {
+      const r = await chamarApi('/api/admin/set-user-active', { email, ativo: !ativoAgora });
+      setAcessos(prev => ({ ...prev, [email]: !ativoAgora }));
+      toast.success(r?.message || 'Acesso atualizado.');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setMudandoAcesso(null);
+    }
+  };
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -54,6 +93,13 @@ export default function Users() {
 
       if (error) throw error;
       setProfiles(data || []);
+
+      const { data: lista } = await supabase
+        .from('usuarios_autorizados')
+        .select('email, ativo');
+      const mapa: Record<string, boolean> = {};
+      (lista || []).forEach((l: any) => { mapa[String(l.email).toLowerCase()] = l.ativo !== false; });
+      setAcessos(mapa);
     } catch (error: any) {
       console.error("Fetch profiles error:", error);
       if (error.code === 'PGRST116' || error.message?.includes('relation "public.profiles" does not exist')) {
@@ -174,17 +220,14 @@ export default function Users() {
     
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', userToDelete);
-
-      if (error) throw error;
-      toast.success(t('profile_removed'));
+      // Pelo servidor: apagar so o perfil deixava a conta no Auth e o
+      // e-mail autorizado - a pessoa continuava entrando.
+      const r = await chamarApi('/api/admin/delete-user', { userId: userToDelete });
+      toast.success(r?.message || t('profile_removed'));
       setUserToDelete(null);
       fetchProfiles();
     } catch (error: any) {
-      toast.error(t('failed_delete_profile'));
+      toast.error(error.message || t('failed_delete_profile'));
     } finally {
       setIsDeleting(false);
     }
@@ -334,7 +377,14 @@ export default function Users() {
                         <UserIcon className="w-6 h-6 text-slate-400 dark:text-slate-500" />
                       </div>
                       <div>
-                        <p className="font-black text-slate-900 dark:text-white tracking-tight">{profile.full_name}</p>
+                        <p className="font-black text-slate-900 dark:text-white tracking-tight">
+                          {profile.full_name}
+                          {acessos[(profile.email || '').trim().toLowerCase()] === false && (
+                          <span className="ml-2 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] font-black uppercase tracking-wider align-middle">
+                            suspenso
+                          </span>
+                        )}
+                        </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{profile.email || profile.id}</p>
                       </div>
                     </div>
@@ -362,6 +412,22 @@ export default function Users() {
                       >
                         <Edit2 className="w-5 h-5" />
                       </button>
+                      {(() => {
+                        const email = (profile.email || '').trim().toLowerCase();
+                        const ativo = acessos[email] !== false;
+                        return (
+                          <button
+                            onClick={() => alternarAcesso(profile)}
+                            disabled={mudandoAcesso === email}
+                            title={ativo ? 'Suspender acesso' : 'Reativar acesso'}
+                            className="p-3 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-xl transition-all disabled:opacity-40"
+                          >
+                            {ativo
+                              ? <Ban className="w-5 h-5" />
+                              : <ShieldCheck className="w-5 h-5 text-amber-500" />}
+                          </button>
+                        );
+                      })()}
                       <button
                         onClick={() => handleDeleteUser(profile.id)}
                         className="p-3 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
@@ -396,7 +462,14 @@ export default function Users() {
                     <UserIcon className="w-6 h-6 text-slate-400 dark:text-slate-500" />
                   </div>
                   <div>
-                    <p className="font-black text-slate-900 dark:text-white tracking-tight leading-tight">{profile.full_name}</p>
+                    <p className="font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                      {profile.full_name}
+                      {acessos[(profile.email || '').trim().toLowerCase()] === false && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] font-black uppercase tracking-wider align-middle">
+                          suspenso
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{profile.email || profile.id}</p>
                   </div>
                 </div>
@@ -407,6 +480,22 @@ export default function Users() {
                   >
                     <Edit2 className="w-5 h-5" />
                   </button>
+                  {(() => {
+                    const email = (profile.email || '').trim().toLowerCase();
+                    const ativo = acessos[email] !== false;
+                    return (
+                      <button
+                        onClick={() => alternarAcesso(profile)}
+                        disabled={mudandoAcesso === email}
+                        title={ativo ? 'Suspender acesso' : 'Reativar acesso'}
+                        className="p-2 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-xl text-slate-400 dark:text-slate-500 transition-colors disabled:opacity-40"
+                      >
+                        {ativo
+                          ? <Ban className="w-5 h-5" />
+                          : <ShieldCheck className="w-5 h-5 text-amber-500" />}
+                      </button>
+                    );
+                  })()}
                   <button 
                     onClick={() => handleDeleteUser(profile.id)}
                     className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-slate-400 dark:text-slate-500 transition-colors"

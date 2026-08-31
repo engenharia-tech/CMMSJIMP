@@ -370,6 +370,87 @@ Pergunta do usuário: ${question}` }] }
   }
 });
 
+// ---------------------------------------------------------------------
+// REMOVER USUARIO — de verdade, nos tres lugares
+//
+// Antes, a tela apagava so a linha de `profiles`. A conta continuava no
+// Auth e o e-mail continuava autorizado: a pessoa seguia entrando, e sem
+// perfil o app a tratava como 'operator'. Remover exige os tres.
+// ---------------------------------------------------------------------
+app.post("/api/admin/delete-user", async (req, res) => {
+  try {
+    const porteiro = await exigeAdmin(req);
+    if (porteiro.erro) return res.status(porteiro.erro).json({ error: porteiro.msg });
+
+    const { userId } = req.body || {};
+    if (!userId) return res.status(400).json({ error: "Usuário não informado." });
+
+    if (userId === porteiro.user!.id) {
+      return res.status(400).json({ error: "Você não pode remover a própria conta." });
+    }
+
+    const admin = supabaseAdmin!;
+
+    const { data: perfil } = await admin
+      .from("profiles").select("email").eq("id", userId).maybeSingle();
+    const email = perfil?.email ? String(perfil.email).trim().toLowerCase() : null;
+
+    if (email) {
+      await admin.from("usuarios_autorizados").delete().eq("email", email);
+    }
+    await admin.from("profiles").delete().eq("id", userId);
+
+    const { error: erroAuth } = await admin.auth.admin.deleteUser(userId);
+    if (erroAuth) {
+      console.error("Falha ao remover do Auth:", erroAuth.message);
+      return res.status(500).json({
+        error: "O perfil foi removido, mas a conta de acesso permaneceu. Avise o administrador.",
+      });
+    }
+
+    return res.json({ success: true, message: "Usuário removido do sistema." });
+  } catch (error: any) {
+    console.error("Erro ao remover usuário:", error?.message || error);
+    return res.status(500).json({ error: "Erro ao remover usuário." });
+  }
+});
+
+// Suspender / reativar. A escrita tambem passaria pela RLS no cliente, mas
+// aqui garantimos a checagem de admin no servidor e impedimos alguem de
+// suspender a propria conta e se trancar para fora.
+app.post("/api/admin/set-user-active", async (req, res) => {
+  try {
+    const porteiro = await exigeAdmin(req);
+    if (porteiro.erro) return res.status(porteiro.erro).json({ error: porteiro.msg });
+
+    const { email, ativo } = req.body || {};
+    if (!email || typeof ativo !== "boolean") {
+      return res.status(400).json({ error: "Dados incompletos." });
+    }
+
+    const alvo = String(email).trim().toLowerCase();
+    if (alvo === String(porteiro.user!.email || "").toLowerCase()) {
+      return res.status(400).json({ error: "Você não pode suspender a própria conta." });
+    }
+
+    const { error } = await supabaseAdmin!
+      .from("usuarios_autorizados").update({ ativo }).eq("email", alvo);
+
+    if (error) {
+      console.error("Falha ao mudar acesso:", error.message);
+      return res.status(500).json({ error: "Não foi possível alterar o acesso." });
+    }
+
+    return res.json({
+      success: true,
+      message: ativo ? "Acesso liberado." : "Acesso suspenso. Vale imediatamente.",
+    });
+  } catch (error: any) {
+    console.error("Erro ao mudar acesso:", error?.message || error);
+    return res.status(500).json({ error: "Erro ao alterar o acesso." });
+  }
+});
+
 // JSON error middleware for API routes
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (req.path && req.path.startsWith('/api')) {
