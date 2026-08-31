@@ -31,7 +31,7 @@ const navItems = [
   { icon: Package, label: 'parts', path: '/parts' },
   { icon: DollarSign, label: 'costs', path: '/costs' },
   { icon: BrainCircuit, label: 'ai_analytics', path: '/analytics' },
-  { icon: Users, label: 'users', path: '/users' },
+  { icon: Users, label: 'users', path: '/users', somenteAdmin: true },
   { icon: Settings, label: 'settings', path: '/settings' },
 ];
 
@@ -43,6 +43,8 @@ interface SidebarProps {
 
 export function Sidebar({ user, isOpen, onClose }: SidebarProps) {
   const { t } = useTranslation();
+  // Mesma regra da rota em App.tsx, para o menu nao contradizer o acesso.
+  const ehAdmin = user?.role === 'admin' || user?.email === 'efariaseng0@gmail.com';
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -77,7 +79,12 @@ export function Sidebar({ user, isOpen, onClose }: SidebarProps) {
       </div>
       
       <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
+        {/* O item Usuarios so aparece para o admin. A rota ja era protegida
+            em App.tsx - quem clicava era devolvido -, mas mostrar um menu que
+            nao leva a lugar nenhum e confuso. */}
+        {navItems
+          .filter((item) => !item.somenteAdmin || ehAdmin)
+          .map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
