@@ -23,7 +23,9 @@ app.use(express.json());
 // Health check
 app.get("/api/health", (req, res) => {
   res.json({ 
-    status: "ok", 
+    status: "ok",
+    modeloIA: GEMINI_MODEL,
+    temChaveIA: !!process.env.GEMINI_API_KEY,
     env: process.env.NODE_ENV,
     vercel: process.env.VERCEL === "1",
     timestamp: new Date().toISOString()
@@ -322,8 +324,9 @@ app.post("/api/ai/analyze", async (req, res) => {
       return res.status(502).json({ error: "A IA devolveu uma resposta que não pôde ser lida." });
     }
   } catch (err: any) {
-    console.error("Erro na análise por IA:", err?.message || err);
-    return res.status(500).json({ error: "Não foi possível concluir a análise." });
+    const motivo = String(err?.message || err).slice(0, 300);
+    console.error("Erro na analise por IA:", motivo);
+    return res.status(500).json({ error: "Não foi possível concluir a análise.", detalhe: motivo });
   }
 });
 
@@ -361,8 +364,9 @@ Pergunta do usuário: ${question}` }] }
 
     return res.json({ answer: response.text || "Não foi possível gerar uma resposta." });
   } catch (err: any) {
-    console.error("Erro na pergunta à IA:", err?.message || err);
-    return res.status(500).json({ error: "Não foi possível responder agora." });
+    const motivo = String(err?.message || err).slice(0, 300);
+    console.error("Erro na pergunta a IA:", motivo);
+    return res.status(500).json({ error: "Não foi possível responder agora.", detalhe: motivo });
   }
 });
 
