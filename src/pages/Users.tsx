@@ -24,7 +24,6 @@ export default function Users() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [createdInviteLink, setCreatedInviteLink] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [copiedCreds, setCopiedCreds] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<{
     email: string;
@@ -39,7 +38,7 @@ export default function Users() {
     email: '',
     fullName: '',
     role: 'operator' as Profile['role'],
-    password: 'Jimp@2026'
+    password: ''
   });
 
   useEffect(() => {
@@ -268,30 +267,12 @@ export default function Users() {
               )}
 
               {!editingProfile && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between ml-1">
-                    <label className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Senha Inicial / Provisória</label>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500">Mínimo 6 caracteres</span>
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500" />
-                    <input
-                      required
-                      minLength={6}
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={e => setFormData({ ...formData, password: e.target.value })}
-                      className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl py-4 pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-slate-900 dark:text-white font-mono text-sm"
-                      placeholder="Senha inicial"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
+                <div className="flex items-start gap-3 p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/40">
+                  <Lock className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                  <p className="text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
+                    Nao ha senha para definir aqui. O colaborador recebe um convite
+                    por e-mail e escolhe a propria senha.
+                  </p>
                 </div>
               )}
 
