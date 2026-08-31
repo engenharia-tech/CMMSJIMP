@@ -1,29 +1,38 @@
 /**
  * Ponte para a Vercel.
  *
- * O import do server.ts acontece dentro de um try: se ele explodir ao
- * carregar, a funcao NAO morre calada com FUNCTION_INVOCATION_FAILED -
- * ela responde dizendo qual foi o erro. Sem isto, toda rota vira um 500
- * opaco e so o log da Vercel conta a historia.
+ * O server.ts e carregado na PRIMEIRA requisicao, dentro de um try. Se
+ * ele explodir, a funcao responde dizendo qual foi o erro em vez de
+ * morrer calada com FUNCTION_INVOCATION_FAILED.
+ *
+ * Sem `await` no topo do arquivo de proposito: se o construtor da Vercel
+ * nao aceitar top-level await, o BUILD falha e a versao antiga fica no
+ * ar - e o diagnostico nunca chega.
  */
-let handler: any;
+let carregando: Promise<any> | null = null;
 
-try {
-  const mod = await import("../server");
-  handler = mod.app;
-} catch (erro: any) {
-  const detalhe = {
-    erro: "A funcao nao conseguiu carregar.",
-    nome: erro?.name || "Error",
-    mensagem: String(erro?.message || erro).slice(0, 500),
-    origem: String(erro?.stack || "").split("\n").slice(1, 4).map((l: string) => l.trim()),
-  };
-  console.error("Falha ao carregar server.ts:", detalhe);
-  handler = (_req: any, res: any) => {
+function carregaApp() {
+  if (!carregando) {
+    carregando = import("../server").then((mod: any) => mod.app);
+  }
+  return carregando;
+}
+
+export default async function handler(req: any, res: any) {
+  try {
+    const app = await carregaApp();
+    return app(req, res);
+  } catch (erro: any) {
+    carregando = null; // deixa tentar de novo na proxima requisicao
+    const detalhe = {
+      erro: "A funcao nao conseguiu carregar o servidor.",
+      nome: erro?.name || "Error",
+      mensagem: String(erro?.message || erro).slice(0, 500),
+      origem: String(erro?.stack || "").split("\n").slice(1, 4).map((l: string) => l.trim()),
+    };
+    console.error("Falha ao carregar server.ts:", detalhe);
     res.statusCode = 500;
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.end(JSON.stringify(detalhe, null, 2));
-  };
+  }
 }
-
-export default handler;
