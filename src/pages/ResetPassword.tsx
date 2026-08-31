@@ -143,7 +143,12 @@ export default function ResetPassword() {
       }, 2000);
     } catch (err: any) {
       console.error('Reset password error:', err);
-      toast.error(err.message || t('failed_to_update_password'));
+      // "lock ... was stolen" e disputa interna do Supabase, nao erro do
+      // usuario: mostrar isso na tela so assusta.
+      const tecnico = /lock[:\s]|was released because|another request stole/i.test(String(err?.message || ''));
+      toast.error(tecnico
+        ? 'Nao foi possivel salvar agora. Tente novamente em alguns segundos.'
+        : (err.message || t('failed_to_update_password')));
     } finally {
       setIsLoading(false);
     }

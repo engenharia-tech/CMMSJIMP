@@ -37,6 +37,10 @@ export default function App() {
     }
 
     const checkUser = async () => {
+      if (window.location.pathname.startsWith('/reset-password')) {
+        setLoading(false);
+        return;
+      }
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
@@ -73,6 +77,21 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change event:', event, 'User:', session?.user?.email);
+
+      // Na tela de redefinir senha, NAO mexemos na sessao. O Supabase ja
+      // esta usando o token para trocar a senha; se sairmos consultando o
+      // banco por cima, as duas chamadas disputam a mesma trava e a troca
+      // falha com "lock was released because another request stole it".
+      const redefinindoSenha =
+        window.location.pathname.startsWith('/reset-password') ||
+        event === 'PASSWORD_RECOVERY' ||
+        event === 'USER_UPDATED';
+
+      if (redefinindoSenha) {
+        setLoading(false);
+        return;
+      }
+
       try {
         if (session?.user) {
           if (!(await verificaAcesso())) {
