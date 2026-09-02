@@ -26,7 +26,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, ehPortugues } from '@/lib/utils';
 import { getSettings, updateSettings, getSystemStats } from '@/services/maintenanceService';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useNotifications } from '@/contexts/NotificationContext';
@@ -638,7 +638,7 @@ export default function SettingsPage() {
                       <div className="flex gap-2">
                         <button 
                           onClick={() => changeLanguage('pt')}
-                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${i18n.language === 'pt' ? 'bg-blue-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${ehPortugues(i18n.language) ? 'bg-blue-600 text-white shadow-md' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
                         >
                           Português
                         </button>

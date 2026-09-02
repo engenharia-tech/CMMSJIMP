@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { MaintenanceOrder, Part, OrderPart, UserRole } from '@/types';
 import { getParts, updateOrder, getSettings, updateEquipment, deleteOrder } from '@/services/maintenanceService';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, ehPortugues } from '@/lib/utils';
 import { ConfirmationModal } from './ConfirmationModal';
 import { supabase, getUserProfile } from '@/supabase';
 
@@ -138,9 +138,9 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat(i18n.language === 'pt' ? 'pt-BR' : 'en-US', {
+    return new Intl.NumberFormat(ehPortugues(i18n.language) ? 'pt-BR' : 'en-US', {
       style: 'currency',
-      currency: i18n.language === 'pt' ? 'BRL' : 'USD'
+      currency: ehPortugues(i18n.language) ? 'BRL' : 'USD'
     }).format(value);
   };
 
@@ -186,7 +186,7 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('labor_cost')}</label>
                 <div className="h-10 flex items-center px-4 bg-white border border-slate-200 rounded-xl font-bold text-slate-700">
                   <DollarSign className="w-4 h-4 text-slate-400 mr-1" />
-                  {laborCost.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
+                  {laborCost.toLocaleString(ehPortugues(i18n.language) ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
                   <span className="ml-2 text-[10px] text-slate-400 font-normal">({laborRate}/h)</span>
                 </div>
               </div>
@@ -229,7 +229,7 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
               >
                 <option value="">+ {t('add_part')}</option>
                 {parts.map(p => (
-                  <option key={p.id} value={p.id}>{p.part_name} ({p.part_code}) - {p.unit_cost.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { style: 'currency', currency: i18n.language === 'pt' ? 'BRL' : 'USD' })}</option>
+                  <option key={p.id} value={p.id}>{p.part_name} ({p.part_code}) - {p.unit_cost.toLocaleString(ehPortugues(i18n.language) ? 'pt-BR' : 'en-US', { style: 'currency', currency: ehPortugues(i18n.language) ? 'BRL' : 'USD' })}</option>
                 ))}
               </select>
             </div>
@@ -266,10 +266,10 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-xs font-medium text-slate-500">{p.unit_cost.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-xs font-medium text-slate-500">{p.unit_cost.toLocaleString(ehPortugues(i18n.language) ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}</span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-sm font-bold text-slate-900">{(p.unit_cost * p.quantity).toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-sm font-bold text-slate-900">{(p.unit_cost * p.quantity).toLocaleString(ehPortugues(i18n.language) ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}</span>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button 
@@ -292,7 +292,7 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
                 <tfoot className="bg-slate-50/50 font-bold border-t border-slate-200">
                   <tr>
                     <td colSpan={3} className="px-4 py-3 text-right text-xs uppercase tracking-wider text-slate-500">{t('total_parts_cost')}</td>
-                    <td className="px-4 py-3 text-right text-slate-900">{partsCost.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3 text-right text-slate-900">{partsCost.toLocaleString(ehPortugues(i18n.language) ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}</td>
                     <td></td>
                   </tr>
                 </tfoot>

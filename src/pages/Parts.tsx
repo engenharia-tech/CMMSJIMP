@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AddPartModal } from '@/components/modals/AddPartModal';
 import { ConfirmationModal } from '@/components/modals/ConfirmationModal';
+import { ehPortugues } from '@/lib/utils';
 
 export default function PartsPage() {
   const { t, i18n } = useTranslation();
@@ -61,9 +62,9 @@ export default function PartsPage() {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat(i18n.language === 'pt' ? 'pt-BR' : 'en-US', {
+    return new Intl.NumberFormat(ehPortugues(i18n.language) ? 'pt-BR' : 'en-US', {
       style: 'currency',
-      currency: i18n.language === 'pt' ? 'BRL' : 'USD'
+      currency: ehPortugues(i18n.language) ? 'BRL' : 'USD'
     }).format(value);
   };
 

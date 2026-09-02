@@ -32,17 +32,19 @@ async function chamarIA(rota: string, corpo: unknown) {
   return dados;
 }
 
-export async function analyzeFailures(orders: MaintenanceOrder[], equipment: Equipment[]) {
-  return chamarIA("/api/ai/analyze", { orders, equipment });
+export async function analyzeFailures(_orders?: MaintenanceOrder[], _equipment?: Equipment[]) {
+  // Nao enviamos mais os dados: o servidor os busca com a permissao de quem
+  // pediu. Mandar o parque inteiro no corpo estourava o limite (413).
+  return chamarIA("/api/ai/analyze", {});
 }
 
-export async function askAi(question: string, orders: MaintenanceOrder[], equipment: Equipment[]) {
+export async function askAi(question: string, _orders?: MaintenanceOrder[], _equipment?: Equipment[]) {
   const pergunta = question.toLowerCase().trim();
   if (pergunta.includes("quem criou voce") || pergunta.includes("quem criou você") ||
       pergunta.includes("por quem voce foi criado") || pergunta.includes("por quem você foi criado")) {
     return "Fui criada por Edson Farias, aquele cheiroso, lindo, maravilhoso ❤️";
   }
 
-  const dados = await chamarIA("/api/ai/ask", { question, orders, equipment });
+  const dados = await chamarIA("/api/ai/ask", { question });
   return dados?.answer || "Nao foi possivel gerar uma resposta.";
 }

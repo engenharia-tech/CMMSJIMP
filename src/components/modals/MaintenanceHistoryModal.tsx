@@ -5,7 +5,7 @@ import { MaintenanceOrder, Equipment } from '@/types';
 import { supabase } from '@/supabase';
 import { format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { cn, ehPortugues } from '@/lib/utils';
 
 interface Props {
   isOpen: boolean;
@@ -39,7 +39,7 @@ export function MaintenanceHistoryModal({ isOpen, onClose, equipment }: Props) {
 
   if (!isOpen || !equipment) return null;
 
-  const locale = i18n.language === 'pt' ? ptBR : enUS;
+  const locale = ehPortugues(i18n.language) ? ptBR : enUS;
 
   const statusColors = {
     open: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30',
@@ -125,7 +125,7 @@ export function MaintenanceHistoryModal({ isOpen, onClose, equipment }: Props) {
                       <div className="text-right">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{t('total_cost')}</p>
                         <p className="text-lg font-black text-slate-900 dark:text-white">
-                          R$ {order.maintenance_cost.toLocaleString(i18n.language === 'pt' ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
+                          R$ {order.maintenance_cost.toLocaleString(ehPortugues(i18n.language) ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
                     </div>

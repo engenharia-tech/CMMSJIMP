@@ -6,7 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { format } from 'date-fns';
 import { ptBR, enUS } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { cn, ehPortugues } from '@/lib/utils';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -21,7 +21,7 @@ export function Header({ onMenuClick, user }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const toggleLanguage = () => {
-    const nextLng = i18n.language === 'pt' ? 'en' : 'pt';
+    const nextLng = ehPortugues(i18n.language) ? 'en' : 'pt';
     i18n.changeLanguage(nextLng);
   };
 

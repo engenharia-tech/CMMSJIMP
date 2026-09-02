@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { format, parseISO } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ehPortugues, dataBR } from '@/lib/utils';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
@@ -84,9 +85,9 @@ export default function CostsPage() {
   ];
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat(i18n.language === 'pt' ? 'pt-BR' : 'en-US', {
+    return new Intl.NumberFormat(ehPortugues(i18n.language) ? 'pt-BR' : 'en-US', {
       style: 'currency',
-      currency: i18n.language === 'pt' ? 'BRL' : 'USD'
+      currency: ehPortugues(i18n.language) ? 'BRL' : 'USD'
     }).format(value);
   };
 
@@ -252,7 +253,7 @@ export default function CostsPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-black text-slate-900 dark:text-white">{formatCurrency(order.maintenance_cost)}</p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">{order.request_date}</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">{dataBR(order.request_date)}</p>
                   </div>
                 </div>
               ))}

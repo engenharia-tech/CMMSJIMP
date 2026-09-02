@@ -20,6 +20,7 @@ import { Equipment, MaintenanceOrder } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
+import { ehPortugues } from '@/lib/utils';
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -159,9 +160,9 @@ export default function Dashboard() {
           />
           <StatCard 
             title={t('maintenance_cost')} 
-            value={new Intl.NumberFormat(i18n.language === 'pt' ? 'pt-BR' : 'en-US', {
+            value={new Intl.NumberFormat(ehPortugues(i18n.language) ? 'pt-BR' : 'en-US', {
               style: 'currency',
-              currency: i18n.language === 'pt' ? 'BRL' : 'USD'
+              currency: ehPortugues(i18n.language) ? 'BRL' : 'USD'
             }).format(kpis.totalCost)} 
             icon={TrendingUp} 
             color="green"

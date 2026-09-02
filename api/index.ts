@@ -18,7 +18,8 @@ const __dirname = path.dirname(__filename);
 
 export const app = express();
 
-app.use(express.json());
+// 100kb era o padrao e estourava com o parque inteiro no corpo do pedido.
+app.use(express.json({ limit: "1mb" }));
 
 // Health check
 app.get("/api/health", (req, res) => {
@@ -256,6 +257,34 @@ function clienteGemini() {
   return new GoogleGenAI({ apiKey });
 }
 
+/**
+ * Busca equipamentos e ordens COM O TOKEN DE QUEM PEDIU, para a RLS valer.
+ *
+ * Antes o navegador mandava os dois vetores inteiros no corpo do pedido. Com
+ * 172 equipamentos e 64 ordens isso estourou o limite e a IA respondia
+ * '413 request entity too large'. Nos meus testes passava porque eu enviava
+ * duas linhas de exemplo, nao o parque de verdade.
+ */
+async function dadosDoUsuario(req: express.Request) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+
+  const cliente = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const [eq, om] = await Promise.all([
+    cliente.from("equipment").select("id,equipment_name,sector,criticality,status"),
+    cliente.from("maintenance_orders")
+      .select("equipment_id,action_type,root_cause,problem_description,maintenance_cost,downtime_hours,request_date,status")
+      .order("request_date", { ascending: false })
+      .limit(300),
+  ]);
+
+  return { equipment: eq.data || [], orders: om.data || [] };
+}
+
 function resumoDoParque(equipment: any[], orders: any[], comCusto: boolean) {
   const eq = (equipment || []).map((e: any) => ({
     nome: e.equipment_name, setor: e.sector,
@@ -285,7 +314,10 @@ app.post("/api/ai/analyze", async (req, res) => {
     const ai = clienteGemini();
     if (!ai) return res.status(503).json({ error: "A análise por IA não está configurada neste servidor." });
 
-    const { equipment, orders } = req.body || {};
+    const { equipment, orders } = await dadosDoUsuario(req);
+    if (orders.length === 0) {
+      return res.status(400).json({ error: "Nao ha ordens de manutencao para analisar." });
+    }
     const { eq, om } = resumoDoParque(equipment, orders, true);
 
     const prompt = `
@@ -338,11 +370,12 @@ app.post("/api/ai/ask", async (req, res) => {
     const ai = clienteGemini();
     if (!ai) return res.status(503).json({ error: "A IA não está configurada neste servidor." });
 
-    const { question, equipment, orders } = req.body || {};
+    const { question } = req.body || {};
     if (!question || typeof question !== "string") {
       return res.status(400).json({ error: "Pergunta vazia." });
     }
 
+    const { equipment, orders } = await dadosDoUsuario(req);
     const { eq, om } = resumoDoParque(equipment, orders, false);
 
     const contexto = `

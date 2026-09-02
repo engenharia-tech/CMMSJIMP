@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { getOrders, getEquipment, updateOrder, updateEquipment, deleteOrder } from '@/services/maintenanceService';
 import { MaintenanceOrder, Equipment, UserRole } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { cn } from '@/lib/utils';
+import { cn, ehPortugues, dataBR } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { AddOrderModal } from '@/components/modals/AddOrderModal';
 import { EditOrderModal } from '@/components/modals/EditOrderModal';
@@ -144,9 +144,9 @@ export default function MaintenanceOrdersPage() {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat(i18n.language === 'pt' ? 'pt-BR' : 'en-US', {
+    return new Intl.NumberFormat(ehPortugues(i18n.language) ? 'pt-BR' : 'en-US', {
       style: 'currency',
-      currency: i18n.language === 'pt' ? 'BRL' : 'USD'
+      currency: ehPortugues(i18n.language) ? 'BRL' : 'USD'
     }).format(value);
   };
 
@@ -351,7 +351,7 @@ export default function MaintenanceOrdersPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{order.request_date}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{dataBR(order.request_date)}</span>
                   </td>
                   <td className="px-6 py-4 text-right sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800">
                     <div className="flex items-center justify-end gap-2">
