@@ -254,11 +254,8 @@ export default function MaintenanceOrdersPage() {
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-              <Filter className="w-4 h-4" />
-              {t('filters')}
-            </button>
-            <div className="hidden sm:block h-8 w-px bg-slate-200 dark:bg-slate-800 mx-2 transition-colors" />
+            {/* O botao 'Filtros' foi removido: nao tinha acao ligada e as
+                pastilhas ao lado ja filtram por status. */}
             <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors overflow-x-auto">
               <button onClick={() => setFiltroStatus('todos')} className={filtroStatus === 'todos' ? "whitespace-nowrap px-3 py-1 text-xs font-bold bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-md shadow-sm border border-slate-200 dark:border-slate-700 transition-colors" : "whitespace-nowrap px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"}>{t('all')}</button>
               <button onClick={() => setFiltroStatus('open')} className={filtroStatus === 'open' ? "whitespace-nowrap px-3 py-1 text-xs font-bold bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-md shadow-sm border border-slate-200 dark:border-slate-700 transition-colors" : "whitespace-nowrap px-3 py-1 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"}>{t('open')}</button>

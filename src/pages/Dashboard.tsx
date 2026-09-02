@@ -18,6 +18,8 @@ import { KPIChart } from '@/components/dashboard/KPIChart';
 import { getEquipment, getOrders, calculateKPIs, fetchEquipment, fetchOrders } from '@/services/maintenanceService';
 import { Equipment, MaintenanceOrder } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -46,6 +48,43 @@ export default function Dashboard() {
   }, []);
 
   const kpis = calculateKPIs(orders, equipment);
+
+  // O botao 'Exportar Relatorio' existia sem nenhuma acao ligada - clicar
+  // nao fazia nada. Agora gera a planilha com os indicadores e as ordens,
+  // com o NOME do equipamento (nao o codigo interno).
+  const exportarRelatorio = () => {
+    if (orders.length === 0) {
+      toast.error(t('no_orders_to_analyze', 'Nao ha ordens para exportar.'));
+      return;
+    }
+
+    const indicadores = [
+      { Indicador: t('total_failures'), Valor: kpis.totalFailures },
+      { Indicador: t('total_cost'), Valor: kpis.totalCost },
+      { Indicador: 'MTBF (h)', Valor: kpis.mtbf },
+      { Indicador: 'MTTR (h)', Valor: kpis.mttr },
+      { Indicador: t('availability') + ' (%)', Valor: kpis.availability },
+      { Indicador: t('equipment'), Valor: equipment.length },
+    ];
+
+    const linhas = orders.map((o) => ({
+      [t('order_number_label')]: o.order_number,
+      [t('equipment')]: equipment.find((e) => e.id === o.equipment_id)?.equipment_name || '-',
+      [t('sector')]: o.sector,
+      [t('action_type')]: t(o.action_type),
+      [t('status')]: t(o.status),
+      [t('downtime_hours')]: o.downtime_hours || 0,
+      [t('total_cost')]: o.maintenance_cost || 0,
+      [t('date')]: o.request_date ? String(o.request_date).slice(0, 10) : '',
+    }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(indicadores), 'Indicadores');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(linhas), 'Ordens');
+    XLSX.writeFile(wb, `CMMS_Painel_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success('Relatorio gerado.');
+  };
+
 
   if (loading) {
     return (
@@ -92,7 +131,10 @@ export default function Dashboard() {
             <div className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 shadow-sm transition-colors">
               {t('last_30_days')}
             </div>
-            <button className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-colors">
+            <button
+              onClick={exportarRelatorio}
+              className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-colors"
+            >
               {t('export_report')}
             </button>
           </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, PieChart, Calendar, Search, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getOrders } from '@/services/maintenanceService';
+import { getOrders, getEquipment } from '@/services/maintenanceService';
 import { MaintenanceOrder } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -15,6 +15,7 @@ export default function CostsPage() {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const [orders, setOrders] = useState<MaintenanceOrder[]>([]);
+  const [equipment, setEquipment] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,13 +23,16 @@ export default function CostsPage() {
       setOrders(data);
       setLoading(false);
     });
-    return unsub;
+    const unsubEq = getEquipment(setEquipment);
+    return () => { unsub(); unsubEq(); };
   }, []);
 
   const handleExportCosts = () => {
     const reportData = orders.map(o => ({
       [t('order_number_label')]: o.order_number,
-      [t('equipment')]: o.equipment_id,
+      // Antes saia o codigo interno (equipment_id) no relatorio: um UUID
+      // no lugar do nome da maquina, inutil para quem le.
+      [t('equipment')]: equipment.find((e) => e.id === o.equipment_id)?.equipment_name || '-',
       [t('date')]: format(parseISO(o.request_date), 'dd/MM/yyyy'),
       [t('labor_cost')]: o.labor_cost || 0,
       [t('parts_cost')]: o.parts_cost || 0,
