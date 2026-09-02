@@ -1,6 +1,20 @@
 import { supabase, handleSupabaseError, isSupabaseConfigured } from '../supabase';
 import { Equipment, MaintenanceOrder, Part } from '../types';
 
+/**
+ * Nome unico por inscricao.
+ *
+ * Todos os canais usavam nome FIXO ('equipment_changes', 'order_changes',
+ * 'parts_changes'). Quando duas telas escutam o mesmo nome ao mesmo tempo, o
+ * supabase-js devolve o canal JA inscrito, e registrar um aviso nele depois
+ * do subscribe() derruba o app com:
+ *   cannot add `postgres_changes` callbacks for realtime:... after `subscribe()`
+ * O 'parts_changes' estava em DOIS arquivos, entao a colisao era garantida.
+ */
+const canalUnico = (nome: string) =>
+  `${nome}_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+
+
 // Equipment Services
 let equipmentSubscribers: ((data: Equipment[]) => void)[] = [];
 
@@ -27,7 +41,7 @@ export const getEquipment = (callback: (data: Equipment[]) => void) => {
   fetchEquipment();
 
   const subscription = supabase
-    .channel('equipment_changes')
+    .channel(canalUnico('equipment_changes'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'equipment' }, fetchEquipment)
     .subscribe();
 
@@ -175,7 +189,7 @@ export const getOrders = (callback: (data: MaintenanceOrder[]) => void) => {
   fetchOrders();
 
   const subscription = supabase
-    .channel('order_changes')
+    .channel(canalUnico('order_changes'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_orders' }, fetchOrders)
     .subscribe();
 
@@ -291,7 +305,7 @@ export const getParts = (callback: (data: Part[]) => void) => {
   fetchParts();
 
   const subscription = supabase
-    .channel('parts_changes')
+    .channel(canalUnico('parts_changes'))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'parts' }, fetchParts)
     .subscribe();
 
