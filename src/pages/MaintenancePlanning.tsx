@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Search, Filter, Clock, CheckCircle, AlertTriangle, FileText, Download, Plus } from 'lucide-react';
+import { Calendar, Search, Filter, Clock, CheckCircle, AlertTriangle, FileText, Download, Plus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getOrders, getEquipment, getSettings, updateEquipment } from '@/services/maintenanceService';
 import { MaintenanceOrder, Equipment, ActionType, Settings } from '@/types';
@@ -67,7 +67,13 @@ export default function MaintenancePlanningPage() {
       interval = e.predictive_interval_days || settings?.default_predictive_interval || 90;
     }
     
-    const nextDate = lastOrder ? addDays(parseISO(lastOrder.request_date), interval) : addDays(new Date(), interval);
+    // Data MARCADA vence o ciclo: "esta bomba, dia 15 de outubro".
+    const marcada = activeTab === 'preventive'
+      ? e.preventive_scheduled_date
+      : activeTab === 'predictive' ? e.predictive_scheduled_date : null;
+
+    const doCiclo = lastOrder ? addDays(parseISO(lastOrder.request_date), interval) : addDays(new Date(), interval);
+    const nextDate = marcada ? parseISO(marcada) : doCiclo;
     
     const isNever = !lastOrder;
     
@@ -78,7 +84,9 @@ export default function MaintenancePlanningPage() {
       next_maintenance: activeTab === 'corrective' ? format(new Date(), 'yyyy-MM-dd') : format(nextDate, 'yyyy-MM-dd'),
       is_overdue: activeTab === 'corrective' ? true : (interval > 0 ? isAfter(new Date(), nextDate) : false),
       intervalo_usado: interval,
-      intervalo_proprio: activeTab === 'preventive' ? e.preventive_interval_days : e.predictive_interval_days
+      intervalo_proprio: activeTab === 'preventive' ? e.preventive_interval_days : e.predictive_interval_days,
+      data_marcada: marcada || '',
+      tem_data_marcada: !!marcada
     };
   }).sort((a, b) => new Date(a.next_maintenance).getTime() - new Date(b.next_maintenance).getTime());
 
@@ -116,6 +124,19 @@ export default function MaintenancePlanningPage() {
         : `${item.equipment_name}: voltou ao padrao geral.`);
     } catch (err: any) {
       toast.error(err.message || 'Nao foi possivel salvar o prazo.');
+    }
+  };
+
+  // Marca (ou desmarca) uma data especifica para esta maquina.
+  const definirDataMarcada = async (item: any, data: string) => {
+    const campo = activeTab === 'predictive' ? 'predictive_scheduled_date' : 'preventive_scheduled_date';
+    try {
+      await updateEquipment(item.id, { [campo]: data || null } as any);
+      toast.success(data
+        ? `${item.equipment_name}: marcada para ${new Date(data + 'T12:00:00').toLocaleDateString('pt-BR')}.`
+        : `${item.equipment_name}: data desmarcada, volta a valer o ciclo.`);
+    } catch (err: any) {
+      toast.error(err.message || 'Nao foi possivel salvar a data.');
     }
   };
 
@@ -228,6 +249,7 @@ export default function MaintenancePlanningPage() {
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('equipment')}</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('last_maintenance')}</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('next_maintenance')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Data marcada</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">A cada</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('status')}</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">{t('actions')}</th>
@@ -246,9 +268,36 @@ export default function MaintenancePlanningPage() {
                       {item.is_never ? t('never') : format(parseISO(item.last_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-sm font-bold ${item.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                        {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className={`text-sm font-bold ${item.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                          {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}
+                        </span>
+                        {/* De onde veio a data: marcada a mao ou calculada pelo ciclo. */}
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          {item.tem_data_marcada ? 'data marcada' : 'pelo ciclo'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {/* Data especifica. Preenchida, MANDA sobre o ciclo. */}
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="date"
+                          value={item.data_marcada}
+                          onChange={(e) => definirDataMarcada(item, e.target.value)}
+                          disabled={activeTab === 'corrective'}
+                          className="px-2 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-40"
+                        />
+                        {item.tem_data_marcada && (
+                          <button
+                            onClick={() => definirDataMarcada(item, '')}
+                            title="Desmarcar e voltar ao ciclo"
+                            className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       {/* Prazo DESTA maquina. Vazio = padrao geral das Configuracoes. */}

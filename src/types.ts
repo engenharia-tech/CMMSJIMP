@@ -22,6 +22,10 @@ export interface Equipment {
   preventive_interval_days?: number | null;
   /** Dias entre preditivas DESTA maquina. Vazio = usa o padrao geral. */
   predictive_interval_days?: number | null;
+  /** Data marcada para a proxima preventiva. Vence o ciclo. */
+  preventive_scheduled_date?: string | null;
+  /** Data marcada para a proxima preditiva. Vence o ciclo. */
+  predictive_scheduled_date?: string | null;
   notes?: string;
   responsible?: string; // Adding a separate field for responsible if needed, but user said "volte para tipo"
 }
