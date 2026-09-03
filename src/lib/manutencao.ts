@@ -47,9 +47,23 @@ export function proximaManutencao(
     .filter((o) => o.equipment_id === equipamento?.id && o.action_type === tipo)
     .sort((a, b) => new Date(b.request_date).getTime() - new Date(a.request_date).getTime())[0];
 
-  const base = ultima ? new Date(ultima.request_date) : hoje;
-  const doCiclo = new Date(base.getTime() + intervalo * DIA);
-  const proxima = dataMarcada ? new Date(`${String(dataMarcada).slice(0, 10)}T12:00:00`) : doCiclo;
+  // Sem historico, a base NAO pode ser 'hoje': a data escorregaria um dia a
+  // cada dia e a maquina nunca venceria. Ancoramos na aquisicao (ou no
+  // cadastro), que e uma data fixa.
+  const ancora = ultima
+    ? new Date(ultima.request_date)
+    : new Date(equipamento?.acquisition_date || equipamento?.created_at || hoje);
+
+  const doCiclo = new Date(ancora.getTime() + intervalo * DIA);
+
+  // Data marcada JA CUMPRIDA nao vale mais: se houve manutencao daquele tipo
+  // na data marcada ou depois, ela foi atendida e o ciclo volta a mandar.
+  // Sem isto a maquina ficaria 'vencida' para sempre, mesmo depois de feita.
+  const cumprida = !!(dataMarcada && ultima &&
+    new Date(ultima.request_date) >= new Date(`${String(dataMarcada).slice(0, 10)}T00:00:00`));
+
+  const usaMarcada = !!dataMarcada && !cumprida;
+  const proxima = usaMarcada ? new Date(`${String(dataMarcada).slice(0, 10)}T12:00:00`) : doCiclo;
 
   const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
   const inicioProxima = new Date(proxima.getFullYear(), proxima.getMonth(), proxima.getDate());
@@ -57,7 +71,7 @@ export function proximaManutencao(
 
   return {
     proxima,
-    marcada: !!dataMarcada,
+    marcada: usaMarcada,
     intervalo,
     atrasada: diasRestantes < 0,
     diasRestantes,

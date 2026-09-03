@@ -505,14 +505,22 @@ function situacaoDaMaquina(eq: any, ordens: any[], cfg: any, hoje: Date) {
     .filter((o) => o.equipment_id === eq.id && o.action_type === "preventive")
     .sort((a, b) => new Date(b.request_date).getTime() - new Date(a.request_date).getTime())[0];
 
-  const base = ultima ? new Date(ultima.request_date) : hoje;
-  const proxima = marcada
+  // Mesma regra de src/lib/manutencao.ts (ver o aviso la sobre a duplicacao).
+  const ancora = ultima
+    ? new Date(ultima.request_date)
+    : new Date(eq?.acquisition_date || eq?.created_at || hoje);
+
+  const cumprida = !!(marcada && ultima &&
+    new Date(ultima.request_date) >= new Date(`${String(marcada).slice(0, 10)}T00:00:00`));
+  const usaMarcada = !!marcada && !cumprida;
+
+  const proxima = usaMarcada
     ? new Date(`${String(marcada).slice(0, 10)}T12:00:00`)
-    : new Date(base.getTime() + intervalo * DIA_MS);
+    : new Date(ancora.getTime() + intervalo * DIA_MS);
 
   const d0 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
   const d1 = new Date(proxima.getFullYear(), proxima.getMonth(), proxima.getDate());
-  return { proxima, marcada: !!marcada, dias: Math.round((d1.getTime() - d0.getTime()) / DIA_MS) };
+  return { proxima, marcada: usaMarcada, dias: Math.round((d1.getTime() - d0.getTime()) / DIA_MS) };
 }
 
 app.get("/api/cron/manutencoes", async (req, res) => {
@@ -527,7 +535,7 @@ app.get("/api/cron/manutencoes", async (req, res) => {
   try {
     const hoje = new Date();
     const [eqR, omR, cfgR, perfisR] = await Promise.all([
-      supabaseAdmin.from("equipment").select("id,registration_number,equipment_name,sector,status,preventive_interval_days,preventive_scheduled_date"),
+      supabaseAdmin.from("equipment").select("id,registration_number,equipment_name,sector,status,acquisition_date,created_at,preventive_interval_days,preventive_scheduled_date"),
       supabaseAdmin.from("maintenance_orders").select("equipment_id,action_type,request_date"),
       supabaseAdmin.from("settings").select("default_preventive_interval").maybeSingle(),
       supabaseAdmin.from("profiles").select("email,role").eq("role", "admin"),
