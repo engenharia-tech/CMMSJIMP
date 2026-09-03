@@ -90,20 +90,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         if (vencidas > 0) {
           addNotification({
-            title: 'Manutencao vencida',
+            title: 'Manutenção vencida',
             message: vencidas === 1
-              ? '1 equipamento esta com a manutencao preventiva vencida.'
-              : `${vencidas} equipamentos estao com a manutencao preventiva vencida.`,
+              ? '1 equipamento está com a manutenção preventiva vencida.'
+              : `${vencidas} equipamentos estão com a manutenção preventiva vencida.`,
             type: 'warning'
           });
         }
 
         if (hoje > 0) {
           addNotification({
-            title: 'Manutencao para hoje',
+            title: 'Manutenção para hoje',
             message: hoje === 1
-              ? '1 equipamento tem manutencao marcada para hoje.'
-              : `${hoje} equipamentos tem manutencao marcada para hoje.`,
+              ? '1 equipamento tem manutenção marcada para hoje.'
+              : `${hoje} equipamentos têm manutenção marcada para hoje.`,
             type: 'warning'
           });
         }

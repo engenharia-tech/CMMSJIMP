@@ -520,7 +520,7 @@ app.get("/api/cron/manutencoes", async (req, res) => {
   // agendamento. Sem isto, qualquer um dispara o e-mail.
   const segredo = process.env.CRON_SECRET;
   if (segredo && req.headers.authorization !== `Bearer ${segredo}`) {
-    return res.status(401).json({ error: "Nao autorizado." });
+    return res.status(401).json({ error: "Não autorizado." });
   }
   if (!supabaseAdmin) return res.status(503).json({ error: "Servidor sem credencial administrativa." });
 
@@ -555,7 +555,7 @@ app.get("/api/cron/manutencoes", async (req, res) => {
       ...(perfisR.data || []).map((p: any) => p.email),
     ].filter(Boolean).join(",");
 
-    if (!destinos) return res.status(500).json({ error: "Sem destinatario configurado." });
+    if (!destinos) return res.status(500).json({ error: "Sem destinatário configurado." });
 
     const linha = (m: any) =>
       `<tr>
@@ -574,7 +574,7 @@ app.get("/api/cron/manutencoes", async (req, res) => {
 
     const corpo = `
       <div style="font-family:Segoe UI,Arial,sans-serif;max-width:640px;margin:0 auto;color:#0f172a">
-        <h2 style="margin-bottom:2px">Manutencao preventiva</h2>
+        <h2 style="margin-bottom:2px">Manutenção preventiva</h2>
         <p style="color:#475569;margin-top:0">CMMS JIMP · ${hoje.toLocaleDateString("pt-BR")}</p>
         ${bloco("Vencidas", vencidas, "#dc2626")}
         ${bloco("Para hoje", paraHoje, "#b45309")}
@@ -585,17 +585,17 @@ app.get("/api/cron/manutencoes", async (req, res) => {
           </a>
         </p>
         <p style="color:#94a3b8;font-size:12px;margin-top:24px">
-          Aviso automatico diario. Programe os prazos em Planejamento de Manutencao.
+          Aviso automático diário. Programe os prazos em Planejamento de Manutenção.
         </p>
       </div>`;
 
     const transporte = transporteDeEmail();
-    if (!transporte) return res.status(503).json({ error: "E-mail nao configurado no servidor." });
+    if (!transporte) return res.status(503).json({ error: "E-mail não configurado no servidor." });
 
     await transporte.sendMail({
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       to: destinos,
-      subject: `Manutencao: ${vencidas.length} vencida(s), ${paraHoje.length} para hoje`,
+      subject: `Manutenção: ${vencidas.length} vencida(s), ${paraHoje.length} para hoje`,
       html: corpo,
     });
 

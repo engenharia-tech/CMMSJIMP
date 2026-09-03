@@ -122,9 +122,9 @@ export default function MaintenancePlanningPage() {
       await updateEquipment(item.id, { [campo]: valor } as any);
       toast.success(valor
         ? `${item.equipment_name}: a cada ${valor} dias.`
-        : `${item.equipment_name}: voltou ao padrao geral.`);
+        : `${item.equipment_name}: voltou ao padrão geral.`);
     } catch (err: any) {
-      toast.error(err.message || 'Nao foi possivel salvar o prazo.');
+      toast.error(err.message || 'Não foi possível salvar o prazo.');
     }
   };
 
@@ -137,7 +137,7 @@ export default function MaintenancePlanningPage() {
         ? `${item.equipment_name}: marcada para ${new Date(data + 'T12:00:00').toLocaleDateString('pt-BR')}.`
         : `${item.equipment_name}: data desmarcada, volta a valer o ciclo.`);
     } catch (err: any) {
-      toast.error(err.message || 'Nao foi possivel salvar a data.');
+      toast.error(err.message || 'Não foi possível salvar a data.');
     }
   };
 
@@ -247,10 +247,10 @@ export default function MaintenancePlanningPage() {
             <AlertTriangle className="w-7 h-7 shrink-0" />
             <div>
               <p className="font-black text-lg leading-tight">
-                {upcomingMaintenance.filter((m) => m.is_overdue).length} equipamento(s) com manutencao VENCIDA
+                {upcomingMaintenance.filter((m) => m.is_overdue).length} equipamento(s) com manutenção VENCIDA
               </p>
               <p className="text-sm text-red-50">
-                Estao destacados na lista abaixo. Abra a ordem antes que vire parada de producao.
+                Estão destacados na lista abaixo. Abra a ordem antes que vire parada de produção.
               </p>
             </div>
           </div>
@@ -329,7 +329,7 @@ export default function MaintenancePlanningPage() {
                         disabled={activeTab === 'corrective'}
                         className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        <option value="">padrao ({item.intervalo_usado} dias)</option>
+                        <option value="">padrão ({item.intervalo_usado} dias)</option>
                         <option value="30">30 dias</option>
                         <option value="60">60 dias</option>
                         <option value="90">90 dias</option>
