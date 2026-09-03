@@ -18,6 +18,10 @@ export interface Equipment {
   status: EquipmentStatus;
   expected_life: number;
   photo_url?: string;
+  /** Dias entre preventivas DESTA maquina. Vazio = usa o padrao geral. */
+  preventive_interval_days?: number | null;
+  /** Dias entre preditivas DESTA maquina. Vazio = usa o padrao geral. */
+  predictive_interval_days?: number | null;
   notes?: string;
   responsible?: string; // Adding a separate field for responsible if needed, but user said "volte para tipo"
 }

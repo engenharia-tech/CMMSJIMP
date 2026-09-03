@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Search, Filter, Clock, CheckCircle, AlertTriangle, FileText, Download, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getOrders, getEquipment, getSettings } from '@/services/maintenanceService';
+import { getOrders, getEquipment, getSettings, updateEquipment } from '@/services/maintenanceService';
 import { MaintenanceOrder, Equipment, ActionType, Settings } from '@/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { format, isAfter, addDays, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -9,6 +9,7 @@ import { ptBR, enUS } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { AddOrderModal } from '@/components/modals/AddOrderModal';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function MaintenancePlanningPage() {
   const { t, i18n } = useTranslation();
@@ -56,11 +57,14 @@ export default function MaintenancePlanningPage() {
       .filter(o => o.equipment_id === e.id && o.action_type === activeTab)
       .sort((a, b) => new Date(b.request_date).getTime() - new Date(a.request_date).getTime())[0];
     
+    // O prazo e DESTA maquina; so cai no padrao geral quando ela nao tem um.
+    // Antes havia um unico numero para a fabrica inteira, e nao dava para
+    // programar 30, 60, 90 ou 365 dias por equipamento.
     let interval = 0;
     if (activeTab === 'preventive') {
-      interval = settings?.default_preventive_interval || 30;
+      interval = e.preventive_interval_days || settings?.default_preventive_interval || 30;
     } else if (activeTab === 'predictive') {
-      interval = settings?.default_predictive_interval || 90;
+      interval = e.predictive_interval_days || settings?.default_predictive_interval || 90;
     }
     
     const nextDate = lastOrder ? addDays(parseISO(lastOrder.request_date), interval) : addDays(new Date(), interval);
@@ -72,7 +76,9 @@ export default function MaintenancePlanningPage() {
       last_maintenance: lastOrder?.request_date || t('never'),
       is_never: isNever,
       next_maintenance: activeTab === 'corrective' ? format(new Date(), 'yyyy-MM-dd') : format(nextDate, 'yyyy-MM-dd'),
-      is_overdue: activeTab === 'corrective' ? true : (interval > 0 ? isAfter(new Date(), nextDate) : false)
+      is_overdue: activeTab === 'corrective' ? true : (interval > 0 ? isAfter(new Date(), nextDate) : false),
+      intervalo_usado: interval,
+      intervalo_proprio: activeTab === 'preventive' ? e.preventive_interval_days : e.predictive_interval_days
     };
   }).sort((a, b) => new Date(a.next_maintenance).getTime() - new Date(b.next_maintenance).getTime());
 
@@ -96,6 +102,21 @@ export default function MaintenancePlanningPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Maintenance Report");
     XLSX.writeFile(wb, `Maintenance_Report_${reportYear}_${reportMonth + 1}.xlsx`);
+  };
+
+  // Programa o prazo DESTA maquina: 30, 60, 90, 180 ou 365 dias.
+  // Vazio devolve ao padrao geral das Configuracoes.
+  const definirPrazo = async (item: any, dias: string) => {
+    const valor = dias === '' ? null : parseInt(dias, 10);
+    const campo = activeTab === 'predictive' ? 'predictive_interval_days' : 'preventive_interval_days';
+    try {
+      await updateEquipment(item.id, { [campo]: valor } as any);
+      toast.success(valor
+        ? `${item.equipment_name}: a cada ${valor} dias.`
+        : `${item.equipment_name}: voltou ao padrao geral.`);
+    } catch (err: any) {
+      toast.error(err.message || 'Nao foi possivel salvar o prazo.');
+    }
   };
 
   const handleCreateAction = (item: Equipment) => {
@@ -207,6 +228,7 @@ export default function MaintenancePlanningPage() {
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('equipment')}</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('last_maintenance')}</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('next_maintenance')}</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">A cada</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('status')}</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest text-right">{t('actions')}</th>
                 </tr>
@@ -227,6 +249,22 @@ export default function MaintenancePlanningPage() {
                       <span className={`text-sm font-bold ${item.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
                         {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {/* Prazo DESTA maquina. Vazio = padrao geral das Configuracoes. */}
+                      <select
+                        value={item.intervalo_proprio ?? ''}
+                        onChange={(e) => definirPrazo(item, e.target.value)}
+                        disabled={activeTab === 'corrective'}
+                        className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <option value="">padrao ({item.intervalo_usado} dias)</option>
+                        <option value="30">30 dias</option>
+                        <option value="60">60 dias</option>
+                        <option value="90">90 dias</option>
+                        <option value="180">180 dias</option>
+                        <option value="365">1 ano</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">

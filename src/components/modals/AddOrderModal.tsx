@@ -100,7 +100,16 @@ export function AddOrderModal({ isOpen, onClose, equipmentList = [], initialEqui
         labor_hours: 0,
         labor_cost: 0,
         parts_cost: 0,
-        next_preventive_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        // Antes eram 30 dias FIXOS para toda ordem, ignorando o prazo da
+        // maquina e ate o tipo de manutencao.
+        next_preventive_date: (() => {
+          const maq = (internalEquipment.length > 0 ? internalEquipment : equipmentList)
+            .find((e: any) => e.id === data.equipment_id);
+          const dias = (data.action_type === 'predictive'
+            ? maq?.predictive_interval_days
+            : maq?.preventive_interval_days) || 30;
+          return new Date(Date.now() + dias * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        })()
       });
 
       // If it's a corrective maintenance, update equipment status to 'maintenance'
