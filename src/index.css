@@ -1,3 +1,20 @@
 @import "tailwindcss";
 
 @variant dark (&:where(.dark, .dark *));
+
+/* Pulso do alerta de manutencao vencida.
+   Nao usamos o animate-pulse do Tailwind porque ele some quase por completo
+   (opacidade .5) e some junto a leitura do texto. Este vai e volta de leve,
+   chama atencao e continua legivel. */
+@keyframes pulseAlerta {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+.animate-pulse-alerta {
+  animation: pulseAlerta 1.4s ease-in-out infinite;
+}
+
+/* Quem prefere menos movimento nao ve piscar - a cor vermelha ja destaca. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-alerta { animation: none; }
+}

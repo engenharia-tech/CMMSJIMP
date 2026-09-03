@@ -4,6 +4,7 @@ import { supabase } from '@/supabase';
 import { MaintenanceOrder, Equipment } from '@/types';
 import { isAfter, parseISO, addDays } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { proximaManutencao } from '@/lib/manutencao';
 
 interface Notification {
   id: string;
@@ -79,21 +80,30 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         if (!equipment || !orders) return;
 
-        // 1. Check for overdue maintenance
-        const overdueCount = equipment.filter(e => {
-          const lastOrder = orders
-            .filter(o => o.equipment_id === e.id && o.action_type === 'preventive')
-            .sort((a, b) => new Date(b.request_date).getTime() - new Date(a.request_date).getTime())[0];
-          
-          const interval = settings?.default_preventive_interval || 30;
-          const nextDate = lastOrder ? addDays(parseISO(lastOrder.request_date), interval) : addDays(new Date(), interval);
-          return isAfter(new Date(), nextDate);
-        }).length;
+        // 1. Manutencao vencida ou vencendo hoje.
+        // Usa a MESMA regra da tela de Planejamento (src/lib/manutencao.ts).
+        // Antes aqui havia uma copia que so olhava o numero global de 30 dias:
+        // o sino avisava uma coisa e a tela mostrava outra.
+        const situacoes = equipment.map((e) => proximaManutencao(e, orders, settings, 'preventive'));
+        const vencidas = situacoes.filter((r) => r.atrasada).length;
+        const hoje = situacoes.filter((r) => r.diasRestantes === 0).length;
 
-        if (overdueCount > 0) {
+        if (vencidas > 0) {
           addNotification({
-            title: t('overdue_maintenance_alert', 'Alerta de Manutenção Atrasada'),
-            message: t('overdue_maintenance_msg', 'Existem {{count}} equipamentos com manutenção preventiva atrasada.', { count: overdueCount }),
+            title: 'Manutencao vencida',
+            message: vencidas === 1
+              ? '1 equipamento esta com a manutencao preventiva vencida.'
+              : `${vencidas} equipamentos estao com a manutencao preventiva vencida.`,
+            type: 'warning'
+          });
+        }
+
+        if (hoje > 0) {
+          addNotification({
+            title: 'Manutencao para hoje',
+            message: hoje === 1
+              ? '1 equipamento tem manutencao marcada para hoje.'
+              : `${hoje} equipamentos tem manutencao marcada para hoje.`,
             type: 'warning'
           });
         }

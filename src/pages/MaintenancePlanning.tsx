@@ -10,6 +10,7 @@ import * as XLSX from 'xlsx';
 import { AddOrderModal } from '@/components/modals/AddOrderModal';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { proximaManutencao } from '@/lib/manutencao';
 
 export default function MaintenancePlanningPage() {
   const { t, i18n } = useTranslation();
@@ -67,13 +68,13 @@ export default function MaintenancePlanningPage() {
       interval = e.predictive_interval_days || settings?.default_predictive_interval || 90;
     }
     
-    // Data MARCADA vence o ciclo: "esta bomba, dia 15 de outubro".
-    const marcada = activeTab === 'preventive'
-      ? e.preventive_scheduled_date
-      : activeTab === 'predictive' ? e.predictive_scheduled_date : null;
-
-    const doCiclo = lastOrder ? addDays(parseISO(lastOrder.request_date), interval) : addDays(new Date(), interval);
-    const nextDate = marcada ? parseISO(marcada) : doCiclo;
+    // A regra vive em src/lib/manutencao.ts, compartilhada com o sino de
+    // notificacoes e com o aviso diario por e-mail.
+    const regra = activeTab === 'corrective'
+      ? null
+      : proximaManutencao(e, orders, settings, activeTab as any);
+    const marcada = regra?.marcada ? (activeTab === 'preventive' ? e.preventive_scheduled_date : e.predictive_scheduled_date) : null;
+    const nextDate = regra ? regra.proxima : new Date();
     
     const isNever = !lastOrder;
     
@@ -241,6 +242,20 @@ export default function MaintenancePlanningPage() {
           </div>
         </div>
 
+        {upcomingMaintenance.filter((m) => m.is_overdue).length > 0 && (
+          <div className="flex items-center gap-4 p-5 rounded-2xl bg-red-600 text-white shadow-xl shadow-red-500/30 animate-pulse-alerta">
+            <AlertTriangle className="w-7 h-7 shrink-0" />
+            <div>
+              <p className="font-black text-lg leading-tight">
+                {upcomingMaintenance.filter((m) => m.is_overdue).length} equipamento(s) com manutencao VENCIDA
+              </p>
+              <p className="text-sm text-red-50">
+                Estao destacados na lista abaixo. Abra a ordem antes que vire parada de producao.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -257,7 +272,14 @@ export default function MaintenancePlanningPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {upcomingMaintenance.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                  <tr
+                    key={item.id}
+                    className={`transition-colors ${
+                      item.is_overdue
+                        ? 'bg-red-50/70 dark:bg-red-900/20 animate-pulse-alerta'
+                        : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/50'
+                    }`}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-900 dark:text-white">{item.equipment_name}</span>
@@ -318,7 +340,7 @@ export default function MaintenancePlanningPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         {item.is_overdue ? (
-                          <span className="px-3 py-1 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 rounded-full text-[10px] font-black uppercase tracking-widest">
+                          <span className="px-3 py-1 bg-red-600 text-white border border-red-700 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse-alerta shadow-lg shadow-red-500/30">
                             {t('overdue')}
                           </span>
                         ) : (

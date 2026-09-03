@@ -484,6 +484,128 @@ app.post("/api/admin/set-user-active", async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------
+// AVISO DIARIO DE MANUTENCAO
+//
+// Roda uma vez por dia (Vercel Cron, ver vercel.json) e manda um e-mail
+// com o que venceu e o que vence hoje.
+//
+// A regra e a MESMA de src/lib/manutencao.ts, repetida aqui porque o
+// construtor da Vercel nao leva arquivos de src/ para dentro da funcao -
+// foi exatamente isso que deixou a API fora do ar por meses. Ao mudar a
+// regra la, mude aqui tambem.
+// ---------------------------------------------------------------------
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+function situacaoDaMaquina(eq: any, ordens: any[], cfg: any, hoje: Date) {
+  const marcada = eq?.preventive_scheduled_date;
+  const intervalo = eq?.preventive_interval_days || cfg?.default_preventive_interval || 30;
+
+  const ultima = (ordens || [])
+    .filter((o) => o.equipment_id === eq.id && o.action_type === "preventive")
+    .sort((a, b) => new Date(b.request_date).getTime() - new Date(a.request_date).getTime())[0];
+
+  const base = ultima ? new Date(ultima.request_date) : hoje;
+  const proxima = marcada
+    ? new Date(`${String(marcada).slice(0, 10)}T12:00:00`)
+    : new Date(base.getTime() + intervalo * DIA_MS);
+
+  const d0 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  const d1 = new Date(proxima.getFullYear(), proxima.getMonth(), proxima.getDate());
+  return { proxima, marcada: !!marcada, dias: Math.round((d1.getTime() - d0.getTime()) / DIA_MS) };
+}
+
+app.get("/api/cron/manutencoes", async (req, res) => {
+  // Segredo compartilhado: a Vercel manda este cabecalho nas chamadas do
+  // agendamento. Sem isto, qualquer um dispara o e-mail.
+  const segredo = process.env.CRON_SECRET;
+  if (segredo && req.headers.authorization !== `Bearer ${segredo}`) {
+    return res.status(401).json({ error: "Nao autorizado." });
+  }
+  if (!supabaseAdmin) return res.status(503).json({ error: "Servidor sem credencial administrativa." });
+
+  try {
+    const hoje = new Date();
+    const [eqR, omR, cfgR, perfisR] = await Promise.all([
+      supabaseAdmin.from("equipment").select("id,registration_number,equipment_name,sector,status,preventive_interval_days,preventive_scheduled_date"),
+      supabaseAdmin.from("maintenance_orders").select("equipment_id,action_type,request_date"),
+      supabaseAdmin.from("settings").select("default_preventive_interval").maybeSingle(),
+      supabaseAdmin.from("profiles").select("email,role").eq("role", "admin"),
+    ]);
+
+    const equipamentos = (eqR.data || []).filter((e: any) => e.status !== "obsolete");
+    const ordens = omR.data || [];
+
+    const vencidas: any[] = [];
+    const paraHoje: any[] = [];
+
+    for (const eq of equipamentos) {
+      const s = situacaoDaMaquina(eq, ordens, cfgR.data, hoje);
+      const linha = { ...eq, ...s };
+      if (s.dias < 0) vencidas.push(linha);
+      else if (s.dias === 0) paraHoje.push(linha);
+    }
+
+    if (vencidas.length === 0 && paraHoje.length === 0) {
+      return res.json({ enviado: false, motivo: "Nada vencendo hoje.", vencidas: 0, hoje: 0 });
+    }
+
+    const destinos = [
+      process.env.EMAIL_TO,
+      ...(perfisR.data || []).map((p: any) => p.email),
+    ].filter(Boolean).join(",");
+
+    if (!destinos) return res.status(500).json({ error: "Sem destinatario configurado." });
+
+    const linha = (m: any) =>
+      `<tr>
+         <td style="padding:8px;border-bottom:1px solid #e2e8f0"><strong>${m.equipment_name}</strong><br>
+           <span style="color:#64748b;font-size:12px">${m.registration_number || ""} · ${m.sector || ""}</span></td>
+         <td style="padding:8px;border-bottom:1px solid #e2e8f0;white-space:nowrap">
+           ${m.proxima.toLocaleDateString("pt-BR")}${m.marcada ? " <span style='color:#2563eb;font-size:11px'>(data marcada)</span>" : ""}</td>
+         <td style="padding:8px;border-bottom:1px solid #e2e8f0;white-space:nowrap;color:${m.dias < 0 ? "#dc2626" : "#b45309"}">
+           ${m.dias < 0 ? `${Math.abs(m.dias)} dia(s) em atraso` : "hoje"}</td>
+       </tr>`;
+
+    const bloco = (titulo: string, itens: any[], cor: string) =>
+      itens.length === 0 ? "" :
+      `<h3 style="color:${cor};margin:24px 0 8px">${titulo} (${itens.length})</h3>
+       <table style="width:100%;border-collapse:collapse;font-size:14px">${itens.map(linha).join("")}</table>`;
+
+    const corpo = `
+      <div style="font-family:Segoe UI,Arial,sans-serif;max-width:640px;margin:0 auto;color:#0f172a">
+        <h2 style="margin-bottom:2px">Manutencao preventiva</h2>
+        <p style="color:#475569;margin-top:0">CMMS JIMP · ${hoje.toLocaleDateString("pt-BR")}</p>
+        ${bloco("Vencidas", vencidas, "#dc2626")}
+        ${bloco("Para hoje", paraHoje, "#b45309")}
+        <p style="margin-top:28px">
+          <a href="https://cmms.jimpnexus.com/preventive"
+             style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:bold">
+            Abrir o planejamento
+          </a>
+        </p>
+        <p style="color:#94a3b8;font-size:12px;margin-top:24px">
+          Aviso automatico diario. Programe os prazos em Planejamento de Manutencao.
+        </p>
+      </div>`;
+
+    const transporte = transporteDeEmail();
+    if (!transporte) return res.status(503).json({ error: "E-mail nao configurado no servidor." });
+
+    await transporte.sendMail({
+      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      to: destinos,
+      subject: `Manutencao: ${vencidas.length} vencida(s), ${paraHoje.length} para hoje`,
+      html: corpo,
+    });
+
+    return res.json({ enviado: true, vencidas: vencidas.length, hoje: paraHoje.length, destinos });
+  } catch (err: any) {
+    console.error("Erro no aviso diario:", err?.message || err);
+    return res.status(500).json({ error: "Falha ao gerar o aviso.", detalhe: String(err?.message || err).slice(0, 200) });
+  }
+});
+
 // JSON error middleware for API routes
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (req.path && req.path.startsWith('/api')) {
