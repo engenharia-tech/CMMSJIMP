@@ -15,7 +15,7 @@ import {
   QrCode,
   ExternalLink,
   Globe
-} from 'lucide-react';
+, ScrollText} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Logo } from './Logo';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,7 @@ const navItems = [
   { icon: DollarSign, label: 'costs', path: '/costs' },
   { icon: BrainCircuit, label: 'ai_analytics', path: '/analytics' },
   { icon: Users, label: 'users', path: '/users', somenteAdmin: true },
+  { icon: ScrollText, label: 'logs', path: '/logs', somenteAdmin: true },
   { icon: Settings, label: 'settings', path: '/settings' },
 ];
 

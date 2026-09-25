@@ -19,6 +19,7 @@ import MaintenancePlanningPage from './pages/MaintenancePlanning';
 import PartsPage from './pages/Parts';
 import CostsPage from './pages/Costs';
 import SettingsPage from './pages/Settings';
+import LogsPage from './pages/Logs';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -190,6 +191,9 @@ export default function App() {
                 <Route path="/costs" element={<CostsPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/users" element={(user.role === 'admin' || user.email === 'efariaseng0@gmail.com') ? <UsersPage /> : <Navigate to="/" replace />} />
+                {/* O registro de atividade e so do administrador: ele mostra o que
+                    cada pessoa fez, inclusive o que foi apagado. */}
+                <Route path="/logs" element={(user.role === 'admin' || user.email === 'efariaseng0@gmail.com') ? <LogsPage /> : <Navigate to="/" replace />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
