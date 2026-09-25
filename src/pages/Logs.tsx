@@ -18,6 +18,7 @@ import { baixarPlanilha } from '@/lib/relatorio';
 interface Registro {
   id: number;
   quando: string;
+  transacao: number;
   tabela: string;
   acao: 'criou' | 'alterou' | 'apagou';
   registro_id: string | null;
@@ -87,19 +88,53 @@ export default function LogsPage() {
   const [busca, setBusca] = useState('');
   const [filtroAcao, setFiltroAcao] = useState<'todas' | 'criou' | 'alterou' | 'apagou'>('todas');
   const [filtroTabela, setFiltroTabela] = useState<string>('todas');
+  const [contagem, setContagem] = useState({ criou: 0, alterou: 0, apagou: 0 });
+  const [total, setTotal] = useState(0);
   const [aberto, setAberto] = useState<number | null>(null);
+
+  /**
+   * A consulta e montada no SERVIDOR.
+   *
+   * A primeira versao baixava as 500 mais recentes e filtrava em memoria - e
+   * exclusao e o evento mais raro dos tres, entao era o primeiro a cair fora da
+   * janela: o cartao "apagou" mostraria 0 e o filtro devolveria lista vazia,
+   * justo a pergunta que motivou a tela.
+   */
+  const consulta = () => {
+    let q = supabase.from('registro_atividade').select('*');
+    if (filtroAcao !== 'todas') q = q.eq('acao', filtroAcao);
+    if (filtroTabela !== 'todas') q = q.eq('tabela', filtroTabela);
+    const texto = busca.trim();
+    if (texto) {
+      const like = `%${texto.replace(/[%_,]/g, '')}%`;
+      q = q.or(`descricao.ilike.${like},quem_nome.ilike.${like},quem_email.ilike.${like}`);
+    }
+    return q;
+  };
 
   const carregar = async () => {
     setCarregando(true);
     setErro(null);
     try {
-      const { data, error } = await supabase
-        .from('registro_atividade')
-        .select('*')
+      const { data, error } = await consulta()
         .order('quando', { ascending: false })
         .limit(LIMITE);
       if (error) throw error;
       setRegistros((data || []) as Registro[]);
+
+      // Os contadores contam o BANCO INTEIRO, nao o que veio na pagina: um
+      // cartao em negrito dizendo 0 exclusoes e uma afirmacao, nao uma amostra.
+      const contar = async (acao: string) => {
+        let c = supabase.from('registro_atividade').select('id', { count: 'exact', head: true });
+        if (filtroTabela !== 'todas') c = c.eq('tabela', filtroTabela);
+        const { count } = await c.eq('acao', acao);
+        return count || 0;
+      };
+      const [criou, alterou, apagou] = await Promise.all([
+        contar('criou'), contar('alterou'), contar('apagou'),
+      ]);
+      setContagem({ criou, alterou, apagou });
+      setTotal(criou + alterou + apagou);
     } catch (e: any) {
       // Sem a migracao 011 no banco, a tabela nao existe: dizer isso em vez
       // de mostrar uma tela vazia que parece "nunca aconteceu nada".
@@ -112,27 +147,30 @@ export default function LogsPage() {
     }
   };
 
-  useEffect(() => { carregar(); }, []);
+  // Espera a digitacao parar antes de ir ao banco.
+  useEffect(() => {
+    const t = setTimeout(carregar, busca ? 350 : 0);
+    return () => clearTimeout(t);
+  }, [filtroAcao, filtroTabela, busca]);
 
-  const visiveis = useMemo(() => {
-    const texto = busca.trim().toLowerCase();
-    return registros.filter((r) => {
-      if (filtroAcao !== 'todas' && r.acao !== filtroAcao) return false;
-      if (filtroTabela !== 'todas' && r.tabela !== filtroTabela) return false;
-      if (!texto) return true;
-      return [r.descricao, r.quem_nome, r.quem_email, NOME_DA_TABELA[r.tabela] || r.tabela]
-        .some((c) => (c || '').toLowerCase().includes(texto));
-    });
-  }, [registros, busca, filtroAcao, filtroTabela]);
+  // O banco ja filtrou; aqui so agrupamos o que veio junto na mesma transacao.
+  const visiveis = registros;
 
-  const contagem = useMemo(() => ({
-    criou: registros.filter((r) => r.acao === 'criou').length,
-    alterou: registros.filter((r) => r.acao === 'alterou').length,
-    apagou: registros.filter((r) => r.acao === 'apagou').length,
-  }), [registros]);
+  const irmaos = useMemo(() => {
+    const n: Record<string, number> = {};
+    for (const r of registros) n[r.transacao] = (n[r.transacao] || 0) + 1;
+    return n;
+  }, [registros]);
 
-  const exportar = () => {
-    const linhas = visiveis.map((r) => ({
+  /**
+   * Exporta TUDO o que bate com o filtro, nao so a pagina na tela - um
+   * relatorio truncado em silencio e pior do que nenhum.
+   */
+  const exportar = async () => {
+    const { data, error } = await consulta().order('quando', { ascending: false }).limit(20000);
+    if (error) { toast.error('Nao foi possivel montar o relatorio.'); return; }
+    const todos = (data || []) as Registro[];
+    const linhas = todos.map((r) => ({
       'Quando': quandoBR(r.quando),
       'Quem': r.quem_nome || '',
       'E-mail': r.quem_email || '',
@@ -253,6 +291,16 @@ export default function LogsPage() {
               {visiveis.map((r) => {
                 const e = ESTILO_DA_ACAO[r.acao] || ESTILO_DA_ACAO.alterou;
                 const mudancas: [string, any][] = r.alteracoes ? Object.entries(r.alteracoes) : [];
+                // Numa exclusao nao ha 'de/para': o que interessa e a linha que
+                // deixou de existir. Ela vem em 'dados' e nao era mostrada.
+                const apagado: [string, any][] = r.acao === 'apagou' && r.dados
+                  ? Object.entries(r.dados).filter(([c, v]) =>
+                      v !== null && v !== '' && !['id', 'created_at', 'updated_at'].includes(c))
+                  : [];
+                const detalhes = mudancas.length > 0 ? mudancas : apagado;
+                const rotuloDetalhe = mudancas.length > 0
+                  ? `${mudancas.length} campo(s) alterado(s)`
+                  : `ver o que foi apagado (${apagado.length} campo(s))`;
                 const expandido = aberto === r.id;
                 return (
                   <div key={r.id} className="p-5 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
@@ -271,26 +319,37 @@ export default function LogsPage() {
                           <span className="font-semibold">{r.quem_nome || 'sistema'}</span>
                           {' · '}
                           {quandoBR(r.quando)}
+                          {irmaos[r.transacao] > 1 && (
+                            <span className="ml-2 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold">
+                              +{irmaos[r.transacao] - 1} na mesma acao
+                            </span>
+                          )}
                         </p>
 
-                        {mudancas.length > 0 && (
+                        {detalhes.length > 0 && (
                           <button
                             onClick={() => setAberto(expandido ? null : r.id)}
                             className="mt-2 flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
                           >
                             {expandido ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                            {mudancas.length} campo(s) alterado(s)
+                            {rotuloDetalhe}
                           </button>
                         )}
 
-                        {expandido && mudancas.length > 0 && (
-                          <div className="mt-3 space-y-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-                            {mudancas.map(([c, v]) => (
+                        {expandido && detalhes.length > 0 && (
+                          <div className="mt-3 space-y-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl p-4 border border-slate-200 dark:border-slate-700 max-h-72 overflow-y-auto">
+                            {detalhes.map(([c, v]) => (
                               <div key={c} className="text-xs flex flex-wrap items-baseline gap-2">
                                 <span className="font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">{campo(c)}</span>
-                                <span className="text-red-600 dark:text-red-400 line-through break-all">{valor(v.de)}</span>
-                                <span className="text-slate-400">→</span>
-                                <span className="text-emerald-700 dark:text-emerald-400 font-semibold break-all">{valor(v.para)}</span>
+                                {mudancas.length > 0 ? (
+                                  <>
+                                    <span className="text-red-600 dark:text-red-400 line-through break-all">{valor(v.de)}</span>
+                                    <span className="text-slate-400">&rarr;</span>
+                                    <span className="text-emerald-700 dark:text-emerald-400 font-semibold break-all">{valor(v.para)}</span>
+                                  </>
+                                ) : (
+                                  <span className="text-slate-700 dark:text-slate-300 break-all">{valor(v)}</span>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -306,7 +365,8 @@ export default function LogsPage() {
 
         {registros.length >= LIMITE && (
           <p className="text-xs text-center text-slate-400 dark:text-slate-500">
-            Mostrando os {LIMITE} registros mais recentes. Use a busca e os filtros para chegar ao que procura.
+            Mostrando os {LIMITE} mais recentes de {total.toLocaleString('pt-BR')} registros.
+            A busca e os filtros consultam o banco inteiro, e o relatório exportado também.
           </p>
         )}
       </div>

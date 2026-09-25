@@ -69,6 +69,26 @@ const supabasePublic = (supabaseUrl && supabaseAnonKey)
 //      nao esteja na lista — inclusive por fora desta rota.
 // ---------------------------------------------------------------------
 
+/**
+ * Cliente que age COMO QUEM CHAMOU, nao como o servidor.
+ *
+ * A chave de servico e invisivel para o registro de atividade: o auth.uid()
+ * dela e NULO, e toda escrita sairia gravada como "sistema". Criar, apagar e
+ * suspender usuario sao as tres coisas mais graves do app - e eram justo as
+ * tres que o log nao saberia atribuir. A RLS ja libera o admin nessas tabelas
+ * (politicas autorizados_admin e profiles_admin), entao o token dele basta.
+ *
+ * A chave de servico continua onde nao ha alternativa: a API de Auth
+ * (createUser, deleteUser, generateLink), que nao tem politica de RLS.
+ */
+function clienteDoChamador(req: express.Request) {
+  const header = req.headers.authorization || "";
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: header } },
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
 async function exigeAdmin(req: express.Request) {
   const user = await usuarioDaRequisicao(req);
   if (!user) return { erro: 401, msg: "Faça login para continuar." };
@@ -155,9 +175,10 @@ app.post("/api/admin/create-user", async (req, res) => {
     const redirectTo = `${origem}/reset-password`;
 
     const admin = supabaseAdmin!;
+    const comoEle = clienteDoChamador(req);
 
     // 1. entra na lista de convidados (sem isto, o porteiro do banco recusa)
-    const { error: erroLista } = await admin.from("usuarios_autorizados").upsert({
+    const { error: erroLista } = await comoEle.from("usuarios_autorizados").upsert({
       email: cleanEmail,
       full_name: fullName,
       role: papel,
@@ -191,7 +212,7 @@ app.post("/api/admin/create-user", async (req, res) => {
 
     // 3. garante o perfil com o papel que o ADMIN escolheu
     if (criado) {
-      await admin.from("profiles").upsert({
+      await comoEle.from("profiles").upsert({
         id: criado.id,
         full_name: fullName,
         email: cleanEmail,
@@ -423,15 +444,16 @@ app.post("/api/admin/delete-user", async (req, res) => {
     }
 
     const admin = supabaseAdmin!;
+    const comoEle = clienteDoChamador(req);
 
     const { data: perfil } = await admin
       .from("profiles").select("email").eq("id", userId).maybeSingle();
     const email = perfil?.email ? String(perfil.email).trim().toLowerCase() : null;
 
     if (email) {
-      await admin.from("usuarios_autorizados").delete().eq("email", email);
+      await comoEle.from("usuarios_autorizados").delete().eq("email", email);
     }
-    await admin.from("profiles").delete().eq("id", userId);
+    await comoEle.from("profiles").delete().eq("id", userId);
 
     const { error: erroAuth } = await admin.auth.admin.deleteUser(userId);
     if (erroAuth) {
@@ -466,7 +488,7 @@ app.post("/api/admin/set-user-active", async (req, res) => {
       return res.status(400).json({ error: "Você não pode suspender a própria conta." });
     }
 
-    const { error } = await supabaseAdmin!
+    const { error } = await clienteDoChamador(req)
       .from("usuarios_autorizados").update({ ativo }).eq("email", alvo);
 
     if (error) {
