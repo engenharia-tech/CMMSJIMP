@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, ClipboardList, AlertCircle, CheckCircle2, Clock, MoreVertical, QrCode } from 'lucide-react';
+import { Plus, Search, Filter, ClipboardList, AlertCircle, CheckCircle2, Clock, MoreVertical, QrCode , Download} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getOrders, getEquipment, updateOrder, updateEquipment, deleteOrder } from '@/services/maintenanceService';
 import { MaintenanceOrder, Equipment, UserRole } from '@/types';
@@ -14,6 +14,7 @@ import { Trash2 } from 'lucide-react';
 import { ConfirmationModal } from '@/components/modals/ConfirmationModal';
 import { QRScannerModal } from '@/components/modals/QRScannerModal';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 
 const statusColors = {
   open: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30',
@@ -173,6 +174,71 @@ export default function MaintenanceOrdersPage() {
     return () => { cancelado = true; };
   }, []);
 
+  /**
+   * Relatorio das ordens em xlsx.
+   *
+   * Exporta o que esta NA TELA - respeita o filtro de status e a busca -, para
+   * o relatorio bater com o que a pessoa esta vendo. E leva o "O QUE FOI FEITO"
+   * (`action_taken`), que e o campo que o pessoal da manutencao preenche: hoje
+   * 115 das 122 ordens ja tem esse texto, e ele nunca saia do sistema.
+   */
+  const exportarRelatorio = () => {
+    if (ordensVisiveis.length === 0) {
+      toast.error('Nao ha ordens nesta lista para exportar.');
+      return;
+    }
+
+    const dias = (o: MaintenanceOrder) => {
+      if (!o.request_date) return '';
+      const fim = o.completion_date ? new Date(o.completion_date) : new Date();
+      return Math.max(0, Math.round((fim.getTime() - new Date(o.request_date).getTime()) / 86400000));
+    };
+
+    const linhas = ordensVisiveis.map((o) => {
+      const eq = equipment.find((e) => e.id === o.equipment_id);
+      const pecas = (o.parts_list || []).map((p: any) => `${p.part_name} (${p.quantity})`).join(' · ');
+      return {
+        'Nº da ordem': o.order_number,
+        'Equipamento': eq?.equipment_name || '-',
+        'Patrimônio': eq?.registration_number || '-',
+        'Setor': o.sector || eq?.sector || '-',
+        'Tipo': t(o.action_type),
+        'Prioridade': t(o.priority),
+        'Status': t(o.status),
+        'Abertura': dataBR(o.request_date),
+        'Conclusão': o.completion_date ? dataBR(o.completion_date) : '',
+        'Dias': dias(o),
+        'Solicitante': o.requester || '',
+        'Executante': o.operator || '',
+        'Problema relatado': o.problem_description || '',
+        'Causa raiz': o.root_cause || '',
+        'O QUE FOI FEITO': o.action_taken || '',
+        'Peças usadas': pecas,
+        'Horas': o.labor_hours || 0,
+        'Mão de obra (R$)': o.labor_cost || 0,
+        'Peças (R$)': o.parts_cost || 0,
+        'Total (R$)': o.maintenance_cost || 0,
+        'Parada (h)': o.downtime_hours || 0,
+        'Criado por': profiles[o.created_by || ''] || '',
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(linhas);
+    // Largura para o texto do que foi feito caber sem o usuario ter de arrastar.
+    ws['!cols'] = [
+      { wch: 13 }, { wch: 26 }, { wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 11 },
+      { wch: 12 }, { wch: 11 }, { wch: 11 }, { wch: 6 }, { wch: 16 }, { wch: 16 },
+      { wch: 40 }, { wch: 24 }, { wch: 55 }, { wch: 30 },
+      { wch: 7 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 18 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Ordens');
+    const rotulo = filtroStatus === 'todos' ? 'todas' : t(filtroStatus);
+    XLSX.writeFile(wb, `CMMS_Ordens_${rotulo}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success(`${linhas.length} ordem(ns) exportada(s).`);
+  };
+
   const texto = busca.trim().toLowerCase();
   const ordensVisiveis = orders.filter((o) => {
     if (filtroStatus !== 'todos' && o.status !== filtroStatus) return false;
@@ -213,6 +279,14 @@ export default function MaintenanceOrdersPage() {
                 {t('scanner')}
               </button>
             </div>
+            <button
+              onClick={exportarRelatorio}
+              className="flex items-center justify-center gap-2 px-5 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95"
+              title="Exporta as ordens da lista, com o que foi feito em cada uma"
+            >
+              <Download className="w-5 h-5" />
+              Exportar Relatório
+            </button>
             <button 
               onClick={() => setShowAddModal(true)}
               className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"

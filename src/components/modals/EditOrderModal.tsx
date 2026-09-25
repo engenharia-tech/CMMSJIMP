@@ -160,6 +160,24 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-8">
+          {/* O que foi feito vem PRIMEIRO: e o que o pessoal da manutencao
+              abre o modal para registrar. Antes ficava depois das horas. */}
+          {/* Action Taken Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center text-green-600">
+                <ClipboardList className="w-4 h-4" />
+              </div>
+              <h4 className="font-bold text-slate-900">{t('action_taken')}</h4>
+            </div>
+            <textarea 
+              value={actionTaken}
+              onChange={(e) => setActionTaken(e.target.value)}
+              placeholder={t('action_taken_placeholder')}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium min-h-[100px]"
+            />
+          </div>
+
           {/* Labor Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-3 mb-2">
@@ -191,22 +209,6 @@ export function EditOrderModal({ isOpen, onClose, order }: Props) {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Action Taken Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center text-green-600">
-                <ClipboardList className="w-4 h-4" />
-              </div>
-              <h4 className="font-bold text-slate-900">{t('action_taken')}</h4>
-            </div>
-            <textarea 
-              value={actionTaken}
-              onChange={(e) => setActionTaken(e.target.value)}
-              placeholder={t('action_taken_placeholder')}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500/20 outline-none font-medium min-h-[100px]"
-            />
           </div>
 
           {/* Parts Section */}
