@@ -9,6 +9,7 @@ import { format, parseISO } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ehPortugues, dataBR } from '@/lib/utils';
+import { baixarPlanilha, dia } from '@/lib/relatorio';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
@@ -28,23 +29,83 @@ export default function CostsPage() {
     return () => { unsub(); unsubEq(); };
   }, []);
 
+  /**
+   * Relatorio de custos, em tres abas.
+   *
+   * O de antes tinha 7 colunas e uma aba so - nao dava para responder "qual
+   * maquina esta me custando caro" nem "quanto gastei com peca". Agora vem o
+   * lancamento, o acumulado POR EQUIPAMENTO e o acumulado POR SETOR, que sao
+   * as duas perguntas que a manutencao faz quando olha custo.
+   */
   const handleExportCosts = () => {
-    const reportData = orders.map(o => ({
-      [t('order_number_label')]: o.order_number,
-      // Antes saia o codigo interno (equipment_id) no relatorio: um UUID
-      // no lugar do nome da maquina, inutil para quem le.
-      [t('equipment')]: equipment.find((e) => e.id === o.equipment_id)?.equipment_name || '-',
-      [t('date')]: format(parseISO(o.request_date), 'dd/MM/yyyy'),
-      [t('labor_cost')]: o.labor_cost || 0,
-      [t('parts_cost')]: o.parts_cost || 0,
-      [t('total_cost')]: o.maintenance_cost || 0,
-      [t('status')]: t(o.status)
+    const nome = (id?: string) => equipment.find((e) => e.id === id)?.equipment_name || '-';
+    const patr = (id?: string) => equipment.find((e) => e.id === id)?.registration_number || '-';
+
+    const lancamentos = orders.map((o) => ({
+      'No da ordem': o.order_number,
+      'Equipamento': nome(o.equipment_id),
+      'Patrimonio': patr(o.equipment_id),
+      'Setor': o.sector || '',
+      'Tipo': t(o.action_type),
+      'Status': t(o.status),
+      'Data': dia(o.request_date),
+      'O QUE FOI FEITO': o.action_taken || '',
+      'Pecas usadas': (o.parts_list || []).map((x: any) => x.part_name + ' (' + x.quantity + ')').join(' | '),
+      'Horas': o.labor_hours || 0,
+      'Mao de obra (R$)': o.labor_cost || 0,
+      'Pecas (R$)': o.parts_cost || 0,
+      'Total (R$)': o.maintenance_cost || 0,
+      'Parada (h)': o.downtime_hours || 0,
     }));
 
-    const ws = XLSX.utils.json_to_sheet(reportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Costs Report");
-    XLSX.writeFile(wb, `Maintenance_Costs_Report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    const porEquip: Record<string, any> = {};
+    for (const o of orders) {
+      const k = o.equipment_id || '(sem equipamento)';
+      porEquip[k] = porEquip[k] || { ordens: 0, mo: 0, pecas: 0, total: 0, parada: 0 };
+      porEquip[k].ordens += 1;
+      porEquip[k].mo += o.labor_cost || 0;
+      porEquip[k].pecas += o.parts_cost || 0;
+      porEquip[k].total += o.maintenance_cost || 0;
+      porEquip[k].parada += o.downtime_hours || 0;
+    }
+    const equipamentos = Object.entries(porEquip)
+      .sort((a: any, b: any) => b[1].total - a[1].total)
+      .map(([id, v]: any) => ({
+        'Equipamento': nome(id),
+        'Patrimonio': patr(id),
+        'Ordens': v.ordens,
+        'Mao de obra (R$)': Number(v.mo.toFixed(2)),
+        'Pecas (R$)': Number(v.pecas.toFixed(2)),
+        'Total (R$)': Number(v.total.toFixed(2)),
+        'Parada (h)': v.parada,
+        'Custo medio por ordem (R$)': Number((v.total / v.ordens).toFixed(2)),
+      }));
+
+    const porSetor: Record<string, any> = {};
+    for (const o of orders) {
+      const k = (o.sector || '(sem setor)').trim();
+      porSetor[k] = porSetor[k] || { ordens: 0, total: 0, parada: 0 };
+      porSetor[k].ordens += 1;
+      porSetor[k].total += o.maintenance_cost || 0;
+      porSetor[k].parada += o.downtime_hours || 0;
+    }
+    const setores = Object.entries(porSetor)
+      .sort((a: any, b: any) => b[1].total - a[1].total)
+      .map(([setor, v]: any) => ({
+        'Setor': setor,
+        'Ordens': v.ordens,
+        'Custo (R$)': Number(v.total.toFixed(2)),
+        'Parada (h)': v.parada,
+      }));
+
+    baixarPlanilha(
+      [
+        { nome: 'Lancamentos', linhas: lancamentos, larguras: [13, 26, 12, 16, 12, 12, 11, 55, 30, 7, 16, 14, 13, 11] },
+        { nome: 'Por equipamento', linhas: equipamentos, larguras: [28, 13, 8, 16, 14, 13, 11, 24] },
+        { nome: 'Por setor', linhas: setores, larguras: [22, 9, 14, 11] },
+      ],
+      'CMMS_Custos'
+    );
   };
 
   const totalCost = orders.reduce((acc, curr) => acc + (curr.maintenance_cost || 0), 0);

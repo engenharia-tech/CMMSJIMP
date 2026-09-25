@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Filter, MoreVertical, Wrench, AlertTriangle, CheckCircle, Clock, Edit2, X, History, QrCode, Trash2, BarChart3 } from 'lucide-react';
+import { Plus, Search, Filter, MoreVertical, Wrench, AlertTriangle, CheckCircle, Clock, Edit2, X, History, QrCode, Trash2, BarChart3 , Download} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getEquipment, hardDeleteEquipment } from '@/services/maintenanceService';
 import { supabase, getUserProfile } from '../supabase';
@@ -16,6 +16,7 @@ import { QRCodeModal } from '@/components/modals/QRCodeModal';
 import { QRScannerModal } from '@/components/modals/QRScannerModal';
 import { ConfirmationModal } from '@/components/modals/ConfirmationModal';
 import { toast } from 'sonner';
+import { baixarPlanilha, dia } from '@/lib/relatorio';
 
 const criticalityColors = {
   low: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/30',
@@ -130,6 +131,36 @@ export default function EquipmentPage() {
     return true;
   });
 
+  /**
+   * Relatorio do parque. Exporta a lista FILTRADA da tela, com o prazo de
+   * preventiva e a data marcada de cada maquina - que e o que o Planejamento
+   * usa - e quantas manutencoes cada uma ja teve.
+   */
+  const exportarRelatorio = () => {
+    const linhas = filteredEquipment.map((e) => ({
+      'Patrimônio': e.registration_number || '',
+      'Equipamento': e.equipment_name || '',
+      'Setor': e.sector || '',
+      'Tipo': e.type || '',
+      'Criticidade': t(e.criticality),
+      'Status': t(e.status),
+      'Fabricante': e.manufacturer || '',
+      'Modelo': e.model || '',
+      'Nº de série': e.serial_number || '',
+      'Aquisição': dia(e.acquisition_date),
+      'Vida útil (anos)': e.expected_life || '',
+      'Manutenções': maintenanceCounts[e.id] || 0,
+      'Preventiva a cada (dias)': e.preventive_interval_days || '',
+      'Data marcada': dia(e.preventive_scheduled_date),
+      'Observações': e.notes || '',
+    }));
+    baixarPlanilha(
+      [{ nome: 'Equipamentos', linhas, larguras: [13, 30, 16, 16, 12, 12, 20, 18, 16, 12, 10, 12, 16, 12, 40] }],
+      'CMMS_Equipamentos'
+    );
+  };
+
+
   const handleScan = (decodedText: string) => {
     setShowScannerModal(false);
     // Try to extract equipment ID from URL
@@ -192,6 +223,14 @@ export default function EquipmentPage() {
               >
                 <QrCode className="w-5 h-5" />
                 {t('scan_qrcode', 'Scan QR Code')}
+              </button>
+              <button
+                onClick={exportarRelatorio}
+                className="flex items-center justify-center gap-2 px-5 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95"
+                title="Exporta os equipamentos da lista, com prazo de preventiva e histórico"
+              >
+                <Download className="w-5 h-5" />
+                Exportar Relatório
               </button>
               <button 
                 onClick={() => setShowAddModal(true)}

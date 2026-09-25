@@ -21,6 +21,9 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { ehPortugues } from '@/lib/utils';
+import { baixarPlanilha, dia, diasEntre } from '@/lib/relatorio';
+import { proximaManutencao } from '@/lib/manutencao';
+import { supabase } from '@/supabase';
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -50,40 +53,139 @@ export default function Dashboard() {
 
   const kpis = calculateKPIs(orders, equipment);
 
-  // O botao 'Exportar Relatorio' existia sem nenhuma acao ligada - clicar
-  // nao fazia nada. Agora gera a planilha com os indicadores e as ordens,
-  // com o NOME do equipamento (nao o codigo interno).
-  const exportarRelatorio = () => {
-    if (orders.length === 0) {
-      toast.error(t('no_orders_to_analyze', 'Nao ha ordens para exportar.'));
+  /**
+   * RELATORIO COMPLETO do sistema, em 6 abas.
+   *
+   * O primeiro que eu fiz levava so os indicadores e as ordens - o Edson disse
+   * que "e pouco". Agora sai tudo o que aconteceu: indicadores, o parque, TODAS
+   * as ordens com o que foi feito em cada uma, o estoque, o custo por setor e a
+   * situacao da preventiva de cada maquina.
+   */
+  const exportarRelatorio = async () => {
+    if (orders.length === 0 && equipment.length === 0) {
+      toast.error('Nao ha dados para exportar.');
       return;
     }
 
+    const { data: parts } = await supabase.from('parts').select('*');
+    const { data: settings } = await supabase.from('settings').select('*').maybeSingle();
+
+    const nomeEq = (id?: string) => equipment.find((e) => e.id === id)?.equipment_name || '-';
+    const patrimonio = (id?: string) => equipment.find((e) => e.id === id)?.registration_number || '-';
+    const doEquip = (id: string) => orders.filter((o) => o.equipment_id === id);
+
     const indicadores = [
-      { Indicador: t('total_failures'), Valor: kpis.totalFailures },
-      { Indicador: t('total_cost'), Valor: kpis.totalCost },
+      { Indicador: 'Equipamentos cadastrados', Valor: equipment.length },
+      { Indicador: 'Ordens de manutencao', Valor: orders.length },
+      { Indicador: 'Abertas', Valor: orders.filter((o) => o.status === 'open').length },
+      { Indicador: 'Em andamento', Valor: orders.filter((o) => o.status === 'in_progress').length },
+      { Indicador: 'Concluidas', Valor: orders.filter((o) => o.status === 'completed').length },
+      { Indicador: 'Falhas (corretivas)', Valor: kpis.totalFailures },
+      { Indicador: 'Custo total (R$)', Valor: Number(kpis.totalCost.toFixed(2)) },
       { Indicador: 'MTBF (h)', Valor: kpis.mtbf },
       { Indicador: 'MTTR (h)', Valor: kpis.mttr },
-      { Indicador: t('availability') + ' (%)', Valor: kpis.availability },
-      { Indicador: t('equipment'), Valor: equipment.length },
+      { Indicador: 'Disponibilidade (%)', Valor: kpis.availability },
+      { Indicador: 'Parada total (h)', Valor: orders.reduce((n, o) => n + (o.downtime_hours || 0), 0) },
+      { Indicador: 'Pecas cadastradas', Valor: (parts || []).length },
     ];
 
-    const linhas = orders.map((o) => ({
-      [t('order_number_label')]: o.order_number,
-      [t('equipment')]: equipment.find((e) => e.id === o.equipment_id)?.equipment_name || '-',
-      [t('sector')]: o.sector,
-      [t('action_type')]: t(o.action_type),
-      [t('status')]: t(o.status),
-      [t('downtime_hours')]: o.downtime_hours || 0,
-      [t('total_cost')]: o.maintenance_cost || 0,
-      [t('date')]: o.request_date ? String(o.request_date).slice(0, 10) : '',
+    const equipamentos = equipment.map((e) => ({
+      'Patrimonio': e.registration_number || '',
+      'Equipamento': e.equipment_name || '',
+      'Setor': e.sector || '',
+      'Criticidade': t(e.criticality),
+      'Status': t(e.status),
+      'Fabricante': e.manufacturer || '',
+      'Aquisicao': dia(e.acquisition_date),
+      'Ordens': doEquip(e.id).length,
+      'Custo acumulado (R$)': Number(doEquip(e.id).reduce((n, o) => n + (o.maintenance_cost || 0), 0).toFixed(2)),
+      'Parada (h)': doEquip(e.id).reduce((n, o) => n + (o.downtime_hours || 0), 0),
     }));
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(indicadores), 'Indicadores');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(linhas), 'Ordens');
-    XLSX.writeFile(wb, `CMMS_Painel_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success('Relatorio gerado.');
+    const ordens = orders.map((o) => ({
+      'No da ordem': o.order_number,
+      'Equipamento': nomeEq(o.equipment_id),
+      'Patrimonio': patrimonio(o.equipment_id),
+      'Setor': o.sector || '',
+      'Tipo': t(o.action_type),
+      'Prioridade': t(o.priority),
+      'Status': t(o.status),
+      'Abertura': dia(o.request_date),
+      'Conclusao': dia(o.completion_date),
+      'Dias': diasEntre(o.request_date, o.completion_date),
+      'Solicitante': o.requester || '',
+      'Executante': o.operator || '',
+      'Problema relatado': o.problem_description || '',
+      'Causa raiz': o.root_cause || '',
+      'O QUE FOI FEITO': o.action_taken || '',
+      'Pecas usadas': (o.parts_list || []).map((x: any) => x.part_name + ' (' + x.quantity + ')').join(' | '),
+      'Horas': o.labor_hours || 0,
+      'Mao de obra (R$)': o.labor_cost || 0,
+      'Pecas (R$)': o.parts_cost || 0,
+      'Total (R$)': o.maintenance_cost || 0,
+      'Parada (h)': o.downtime_hours || 0,
+    }));
+
+    const pecas = (parts || []).map((p: any) => {
+      const est = Number(p.stock_quantity) || 0;
+      const min = Number(p.minimum_stock) || 0;
+      const custo = Number(p.unit_cost) || 0;
+      return {
+        'Codigo': p.part_code,
+        'Peca': p.part_name,
+        'Estoque': est,
+        'Minimo': min,
+        'Situacao': est <= 0 ? 'SEM ESTOQUE' : est < min ? 'ABAIXO DO MINIMO' : 'ok',
+        'Custo unitario (R$)': custo,
+        'Valor em estoque (R$)': Number((est * custo).toFixed(2)),
+        'Fornecedor': p.supplier || '',
+      };
+    });
+
+    const porSetor: Record<string, { ordens: number; custo: number; parada: number }> = {};
+    for (const o of orders) {
+      const chave = (o.sector || '(sem setor)').trim();
+      porSetor[chave] = porSetor[chave] || { ordens: 0, custo: 0, parada: 0 };
+      porSetor[chave].ordens += 1;
+      porSetor[chave].custo += o.maintenance_cost || 0;
+      porSetor[chave].parada += o.downtime_hours || 0;
+    }
+    const setores = Object.entries(porSetor)
+      .sort((a, b) => b[1].custo - a[1].custo)
+      .map(([setor, v]) => ({
+        'Setor': setor,
+        'Ordens': v.ordens,
+        'Custo (R$)': Number(v.custo.toFixed(2)),
+        'Parada (h)': v.parada,
+      }));
+
+    const preventiva = equipment
+      .filter((e) => e.status !== 'obsolete')
+      .map((e) => {
+        const r = proximaManutencao(e, orders, settings, 'preventive');
+        return {
+          'Patrimonio': e.registration_number || '',
+          'Equipamento': e.equipment_name || '',
+          'Setor': e.sector || '',
+          'A cada (dias)': r.intervalo,
+          'Proxima': r.proxima.toLocaleDateString('pt-BR'),
+          'Origem': r.marcada ? 'data marcada' : 'pelo ciclo',
+          'Situacao': r.atrasada ? 'VENCIDA' : r.diasRestantes === 0 ? 'HOJE' : 'faltam ' + r.diasRestantes + ' dia(s)',
+        };
+      })
+      .sort((a, b) => (a['Situacao'].indexOf('VENC') === 0 ? -1 : 1));
+
+    baixarPlanilha(
+      [
+        { nome: 'Indicadores', linhas: indicadores, larguras: [34, 18] },
+        { nome: 'Equipamentos', linhas: equipamentos, larguras: [13, 30, 16, 12, 12, 20, 12, 9, 20, 11] },
+        { nome: 'Ordens', linhas: ordens, larguras: [13, 26, 12, 16, 12, 11, 12, 11, 11, 6, 16, 16, 40, 24, 55, 30, 7, 14, 12, 12, 10] },
+        { nome: 'Pecas', linhas: pecas, larguras: [14, 34, 10, 10, 18, 18, 20, 22] },
+        { nome: 'Custo por setor', linhas: setores, larguras: [22, 9, 16, 11] },
+        { nome: 'Preventiva', linhas: preventiva, larguras: [13, 30, 16, 13, 12, 14, 20] },
+      ],
+      'CMMS_Relatorio_Completo'
+    );
   };
 
 

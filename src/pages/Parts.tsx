@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Package, AlertTriangle, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, Package, AlertTriangle, Edit2, Trash2 , Download} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getParts, deletePart } from '@/services/partsService';
 import { Part } from '@/types';
@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AddPartModal } from '@/components/modals/AddPartModal';
 import { ConfirmationModal } from '@/components/modals/ConfirmationModal';
 import { ehPortugues } from '@/lib/utils';
+import { baixarPlanilha } from '@/lib/relatorio';
 
 export default function PartsPage() {
   const { t, i18n } = useTranslation();
@@ -31,6 +32,49 @@ export default function PartsPage() {
     part.part_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     part.part_code.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  /**
+   * Relatorio do estoque. Alem do que a tela mostra, calcula o VALOR parado
+   * (estoque x custo) e marca quem esta abaixo do minimo - que e a pergunta
+   * que o almoxarifado faz: o que preciso comprar e quanto tenho em peca.
+   */
+  const exportarRelatorio = () => {
+    const lista = filteredParts.length > 0 ? filteredParts : parts;
+    const linhas = lista.map((p) => {
+      const estoque = Number(p.stock_quantity) || 0;
+      const minimo = Number(p.minimum_stock) || 0;
+      const custo = Number(p.unit_cost) || 0;
+      return {
+        'Código': p.part_code || '',
+        'Peça': p.part_name || '',
+        'Estoque': estoque,
+        'Unidade': p.unit || 'un',
+        'Estoque mínimo': minimo,
+        'Situação': estoque <= 0 ? 'SEM ESTOQUE' : estoque < minimo ? 'ABAIXO DO MÍNIMO' : 'ok',
+        'A repor': estoque < minimo ? minimo - estoque : 0,
+        'Custo unitário (R$)': custo,
+        'Valor em estoque (R$)': Number((estoque * custo).toFixed(2)),
+        'Fornecedor': p.supplier || '',
+      };
+    });
+
+    const total = linhas.reduce((n, l) => n + (l['Valor em estoque (R$)'] as number), 0);
+    const abaixo = linhas.filter((l) => l['Situação'] !== 'ok').length;
+    const resumo = [
+      { Indicador: 'Peças cadastradas', Valor: linhas.length },
+      { Indicador: 'Abaixo do mínimo ou sem estoque', Valor: abaixo },
+      { Indicador: 'Valor total em estoque (R$)', Valor: Number(total.toFixed(2)) },
+    ];
+
+    baixarPlanilha(
+      [
+        { nome: 'Peças', linhas, larguras: [14, 34, 10, 9, 14, 18, 9, 18, 20, 22] },
+        { nome: 'Resumo', linhas: resumo, larguras: [34, 16] },
+      ],
+      'CMMS_Pecas'
+    );
+  };
+
 
   const handleEdit = (part: Part) => {
     setPartToEdit(part);
@@ -76,6 +120,15 @@ export default function PartsPage() {
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{t('parts_inventory')}</h2>
             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">{t('manage_parts_desc')}</p>
           </div>
+          <div className="flex items-center gap-3">
+          <button
+            onClick={exportarRelatorio}
+            className="flex items-center justify-center gap-2 px-5 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95"
+            title="Exporta o estoque, com o que está abaixo do mínimo e o valor parado"
+          >
+            <Download className="w-5 h-5" />
+            Exportar Relatório
+          </button>
           <button 
             onClick={() => setShowAddModal(true)}
             className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-700 transition-all active:scale-95"
@@ -83,6 +136,7 @@ export default function PartsPage() {
             <Plus className="w-5 h-5" />
             {t('add_part')}
           </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
