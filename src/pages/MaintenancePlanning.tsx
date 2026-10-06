@@ -26,6 +26,14 @@ export default function MaintenancePlanningPage() {
 
   const currentLocale = i18n.language.startsWith('en') ? enUS : ptBR;
 
+  // Data para mostrar. Uma data invalida vira '—' em vez de estourar o
+  // format() - o ErrorBoundary abaixo nao pega erro deste componente, e a
+  // tela ficava inteira em branco.
+  const dataTela = (valor: string) => {
+    const d = parseISO(valor);
+    return isNaN(d.getTime()) ? '—' : format(d, 'dd/MM/yyyy', { locale: currentLocale });
+  };
+
   useEffect(() => {
     const unsubOrders = getOrders((data) => {
       setOrders(data);
@@ -82,7 +90,7 @@ export default function MaintenancePlanningPage() {
       ...e,
       last_maintenance: lastOrder?.request_date || t('never'),
       is_never: isNever,
-      next_maintenance: activeTab === 'corrective' ? format(new Date(), 'yyyy-MM-dd') : format(nextDate, 'yyyy-MM-dd'),
+      next_maintenance: activeTab === 'corrective' || isNaN(nextDate.getTime()) ? format(new Date(), 'yyyy-MM-dd') : format(nextDate, 'yyyy-MM-dd'),
       is_overdue: activeTab === 'corrective' ? true : (interval > 0 ? isAfter(new Date(), nextDate) : false),
       intervalo_usado: interval,
       intervalo_proprio: activeTab === 'preventive' ? e.preventive_interval_days : e.predictive_interval_days,
@@ -287,12 +295,12 @@ export default function MaintenancePlanningPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                      {item.is_never ? t('never') : format(parseISO(item.last_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}
+                      {item.is_never ? t('never') : dataTela(item.last_maintenance)}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className={`text-sm font-bold ${item.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                          {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}
+                          {dataTela(item.next_maintenance)}
                         </span>
                         {/* De onde veio a data: marcada a mao ou calculada pelo ciclo. */}
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -388,12 +396,12 @@ export default function MaintenancePlanningPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('last_maintenance')}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{item.is_never ? t('never') : format(parseISO(item.last_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{item.is_never ? t('never') : dataTela(item.last_maintenance)}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('next_maintenance')}</p>
                     <p className={`text-sm font-bold ${item.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                      {format(parseISO(item.next_maintenance), 'dd/MM/yyyy', { locale: currentLocale })}
+                      {dataTela(item.next_maintenance)}
                     </p>
                   </div>
                 </div>

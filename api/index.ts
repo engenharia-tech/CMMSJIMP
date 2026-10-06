@@ -519,8 +519,22 @@ app.post("/api/admin/set-user-active", async (req, res) => {
 // ---------------------------------------------------------------------
 const DIA_MS = 24 * 60 * 60 * 1000;
 
+// Primeira data VALIDA da lista (mesma de src/lib/manutencao.ts): uma data
+// digitada errada ('20258-08-10') e pulada em vez de virar Invalid Date.
+function primeiraDataValida(...valores: any[]): Date | null {
+  for (const v of valores) {
+    if (!v) continue;
+    const d = v instanceof Date ? v : new Date(v);
+    // Ano fora de 1900-2100 e erro de digitacao, nao data de verdade.
+    if (!isNaN(d.getTime()) && d.getFullYear() >= 1900 && d.getFullYear() <= 2100) return d;
+  }
+  return null;
+}
+
 function situacaoDaMaquina(eq: any, ordens: any[], cfg: any, hoje: Date) {
-  const marcada = eq?.preventive_scheduled_date;
+  const marcadaBruta = eq?.preventive_scheduled_date;
+  const marcada = marcadaBruta &&
+    primeiraDataValida(`${String(marcadaBruta).slice(0, 10)}T12:00:00`) ? marcadaBruta : null;
   const intervalo = eq?.preventive_interval_days || cfg?.default_preventive_interval || 30;
 
   const ultima = (ordens || [])
@@ -528,9 +542,7 @@ function situacaoDaMaquina(eq: any, ordens: any[], cfg: any, hoje: Date) {
     .sort((a, b) => new Date(b.request_date).getTime() - new Date(a.request_date).getTime())[0];
 
   // Mesma regra de src/lib/manutencao.ts (ver o aviso la sobre a duplicacao).
-  const ancora = ultima
-    ? new Date(ultima.request_date)
-    : new Date(eq?.acquisition_date || eq?.created_at || hoje);
+  const ancora = primeiraDataValida(ultima?.request_date, eq?.acquisition_date, eq?.created_at) || hoje;
 
   const cumprida = !!(marcada && ultima &&
     new Date(ultima.request_date) >= new Date(`${String(marcada).slice(0, 10)}T00:00:00`));

@@ -27,6 +27,19 @@ export interface RegraManutencao {
 
 const DIA = 24 * 60 * 60 * 1000;
 
+// Primeira data VALIDA da lista. Um cadastro com a aquisicao digitada errada
+// ('20258-08-10') virava o ano 20258, a data da tela estourava e o
+// Planejamento inteiro ficava em branco. Data ruim agora so e pulada.
+function primeiraDataValida(...valores: any[]): Date | null {
+  for (const v of valores) {
+    if (!v) continue;
+    const d = v instanceof Date ? v : new Date(v);
+    // Ano fora de 1900-2100 e erro de digitacao, nao data de verdade.
+    if (!isNaN(d.getTime()) && d.getFullYear() >= 1900 && d.getFullYear() <= 2100) return d;
+  }
+  return null;
+}
+
 export function proximaManutencao(
   equipamento: any,
   ordens: any[],
@@ -34,9 +47,11 @@ export function proximaManutencao(
   tipo: TipoManutencao = 'preventive',
   hoje: Date = new Date()
 ): RegraManutencao {
-  const dataMarcada = tipo === 'preventive'
+  const marcadaBruta = tipo === 'preventive'
     ? equipamento?.preventive_scheduled_date
     : equipamento?.predictive_scheduled_date;
+  const dataMarcada = marcadaBruta &&
+    primeiraDataValida(`${String(marcadaBruta).slice(0, 10)}T12:00:00`) ? marcadaBruta : null;
 
   const intervalo =
     (tipo === 'preventive' ? equipamento?.preventive_interval_days : equipamento?.predictive_interval_days) ||
@@ -50,9 +65,11 @@ export function proximaManutencao(
   // Sem historico, a base NAO pode ser 'hoje': a data escorregaria um dia a
   // cada dia e a maquina nunca venceria. Ancoramos na aquisicao (ou no
   // cadastro), que e uma data fixa.
-  const ancora = ultima
-    ? new Date(ultima.request_date)
-    : new Date(equipamento?.acquisition_date || equipamento?.created_at || hoje);
+  const ancora = primeiraDataValida(
+    ultima?.request_date,
+    equipamento?.acquisition_date,
+    equipamento?.created_at
+  ) || hoje;
 
   const doCiclo = new Date(ancora.getTime() + intervalo * DIA);
 
