@@ -8,7 +8,19 @@
 >
 > Para regerar: leia `/rest/v1/` com o cabecalho `Accept: application/openapi+json`.
 
-## equipment  (15 colunas)
+> ⚠ **As tabelas de colunas abaixo foram geradas em 31/08 e envelheceram.**
+> Conferido em 06/10 contra o banco: `equipment` tem **19** colunas (as 4 do
+> agendamento entraram com as migrações 008 e 009), e existe uma 7ª tabela que
+> não está listada aqui, `registro_atividade`, com **12** colunas. As outras
+> cinco não mudaram: `maintenance_orders` 24, `parts` 9, `profiles` 5,
+> `settings` 8, `usuarios_autorizados` 7.
+>
+> Este arquivo nasceu porque o `supabase_schema.sql` mentia — e agora ele mesmo
+> já mentiu. A regra não é "confira aqui": é **conte no banco**, com
+> `GET /rest/v1/<tabela>?select=*&limit=1`. Documento não é fonte de verdade
+> sobre banco; banco é.
+
+## equipment  (19 colunas — 15 abaixo + as 4 do agendamento)
 
 | coluna | tipo |
 |---|---|
@@ -27,6 +39,21 @@
 | `serial_number` | text |
 | `status` | text |
 | `type` | text |
+| `preventive_interval_days` | integer |
+| `predictive_interval_days` | integer |
+| `preventive_scheduled_date` | date |
+| `predictive_scheduled_date` | date |
+
+## registro_atividade  (12 colunas)
+
+| coluna | para que |
+|---|---|
+| `id` · `quando` | o número da linha e a hora (em UTC — some 3 h do relógio de Joinville) |
+| `transacao` | agrupa o que aconteceu junto: apagar equipamento leva as ordens em cascata |
+| `tabela` · `acao` · `registro_id` · `descricao` | onde, o quê, qual linha, e o rótulo legível |
+| `quem_id` · `quem_nome` · `quem_email` | quem fez. "sistema" = sem sessão (a chave de serviço) |
+| `alteracoes` | o de/para campo a campo, só em alteração |
+| `dados` | a linha inteira — é o que sobra depois de uma exclusão |
 
 ## maintenance_orders  (24 colunas)
 
