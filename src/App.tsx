@@ -20,6 +20,7 @@ import PartsPage from './pages/Parts';
 import CostsPage from './pages/Costs';
 import SettingsPage from './pages/Settings';
 import LogsPage from './pages/Logs';
+import ProjetoPage from './pages/Projeto';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -194,6 +195,10 @@ export default function App() {
                 {/* O registro de atividade e so do administrador: ele mostra o que
                     cada pessoa fez, inclusive o que foi apagado. */}
                 <Route path="/logs" element={(user.role === 'admin' || user.email === 'efariaseng0@gmail.com') ? <LogsPage /> : <Navigate to="/" replace />} />
+                {/* A memoria do projeto. Mesma regua do Registro: ela conta como
+                    o acesso e desenhado por dentro, e isso nao e assunto para a
+                    tela de quem so registra manutencao. */}
+                <Route path="/projeto" element={(user.role === 'admin' || user.email === 'efariaseng0@gmail.com') ? <ProjetoPage /> : <Navigate to="/" replace />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
