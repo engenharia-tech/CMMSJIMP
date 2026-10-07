@@ -36,8 +36,38 @@ import { fileURLToPath } from 'node:url';
 const RAIZ = dirname(dirname(fileURLToPath(import.meta.url)));
 process.chdir(RAIZ);
 
-const DESTINO = 'V:/TI/PROJETOS TI/engenharia/CMMS-JIMP';
 const SO_LISTAR = process.argv.includes('--listar');
+
+/**
+ * Onde fica a pasta da TI — pelo caminho de REDE primeiro, pela letra depois.
+ *
+ * 🔴 O `V:` e uma letra MAPEADA, e no Windows mapeamento pertence a uma sessao
+ * de login. Um terminal aberto como ADMINISTRADOR roda noutra sessao e **nao
+ * enxerga o V:** — o Edson rodou assim e o node respondeu "ENOENT: no such file
+ * or directory, mkdir 'V:\TI\PROJETOS TI\engenharia\CMMS-JIMP'", como se a
+ * pasta nao existisse. Ela existia; quem nao existia era a letra.
+ *
+ * O caminho de rede (`\10.5.0.5\Alma`, que e o que o V: aponta) vale nas duas
+ * sessoes. A letra fica como reserva, para o caso de o UNC estar bloqueado.
+ */
+const PASTAS_DA_TI = [
+  '//10.5.0.5/Alma/TI/PROJETOS TI/engenharia',
+  'V:/TI/PROJETOS TI/engenharia',
+];
+const PASTA_TI = PASTAS_DA_TI.find((p) => { try { return existsSync(p); } catch { return false; } });
+
+if (!PASTA_TI) {
+  console.log('🔴 Nao consegui chegar na pasta de projetos da TI. Tentei:');
+  for (const p of PASTAS_DA_TI) console.log(`     ${p}`);
+  console.log('');
+  console.log('   O motivo mais comum: este terminal foi aberto como ADMINISTRADOR.');
+  console.log('   Letra de rede mapeada (V:) nao existe na sessao de administrador.');
+  console.log('   Feche e abra um terminal NORMAL, ou confira se o servidor 10.5.0.5');
+  console.log('   esta acessivel.');
+  process.exit(1);
+}
+
+const DESTINO = join(PASTA_TI, 'CMMS-JIMP');
 
 /** O que vai. Tudo o que não está aqui NÃO vai — lista fechada, não filtro. */
 const VAI = [
