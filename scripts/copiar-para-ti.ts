@@ -20,7 +20,21 @@ import {
   statSync, writeFileSync, rmSync,
 } from 'node:fs';
 import { execSync } from 'node:child_process';
-import { join, relative, sep } from 'node:path';
+import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+/**
+ * O script acha o projeto SOZINHO, pela propria localizacao.
+ *
+ * 🔴 Antes ele dependia da pasta de onde era chamado, e o Edson o rodou a
+ * partir de C:\Windows\System32 (a pasta em que um terminal de administrador
+ * abre): o node reclamou que nao achava o arquivo e nada aconteceu. Ferramenta
+ * que so funciona se a pessoa estiver no lugar certo vai falhar no dia em que
+ * importa. Agora `npx tsx "<caminho>/scripts/copiar-para-ti.ts"` funciona de
+ * qualquer lugar.
+ */
+const RAIZ = dirname(dirname(fileURLToPath(import.meta.url)));
+process.chdir(RAIZ);
 
 const DESTINO = 'V:/TI/PROJETOS TI/engenharia/CMMS-JIMP';
 const SO_LISTAR = process.argv.includes('--listar');
