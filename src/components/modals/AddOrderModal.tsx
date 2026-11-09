@@ -90,6 +90,23 @@ export function AddOrderModal({ isOpen, onClose, equipmentList = [], initialEqui
     }
   }, [isOpen, initialEquipmentId, initialActionType, reset]);
 
+  // "Criar Ação" no Planejamento: a ordem tem de abrir JA com a maquina.
+  // Antes o equipamento era posto no campo antes de a lista carregar, o
+  // campo voltava para "Selecionar Equipamento" e a ordem abria em branco.
+  // Agora, quando a lista chega, a maquina, o setor dela e a descricao entram.
+  const listaVisivel = internalEquipment.length > 0 ? internalEquipment : equipmentList;
+  React.useEffect(() => {
+    if (!isOpen || !initialEquipmentId) return;
+    const maq: any = listaVisivel.find((e) => e.id === initialEquipmentId);
+    if (!maq) return;
+    setValue('equipment_id', maq.id);
+    if (maq.sector) setValue('sector', maq.sector);
+    if (initialActionType === 'preventive' || initialActionType === 'predictive') {
+      const tipo = initialActionType === 'preventive' ? 'preventiva' : 'preditiva';
+      setValue('problem_description', `Manutenção ${tipo} programada - ${maq.equipment_name}`);
+    }
+  }, [isOpen, initialEquipmentId, initialActionType, listaVisivel.length, setValue]);
+
   const onSubmit = async (data: FormData) => {
     try {
       console.log('AddOrderModal: Attempting to create order with data:', data);

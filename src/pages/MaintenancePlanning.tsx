@@ -426,6 +426,7 @@ export default function MaintenancePlanningPage() {
               setShowAddOrderModal(false);
               setSelectedEquipment(null);
             }}
+            equipmentList={equipment}
             initialEquipmentId={selectedEquipment.id}
             initialActionType={activeTab}
           />
