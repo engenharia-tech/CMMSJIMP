@@ -48,6 +48,9 @@ export default function MaintenanceOrdersPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('operator');
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  // Quem esta na lista 'pode_apagar_ordem' (migracao 012) tambem ve a
+  // lixeira - antes era so o admin. Quem decide de verdade e o banco.
+  const [naListaDeApagar, setNaListaDeApagar] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<'list' | 'scanner'>((searchParams.get('view') as 'list' | 'scanner') || 'list');
 
@@ -70,6 +73,9 @@ export default function MaintenanceOrdersPage() {
         setUserEmail(user.email || null);
         const profile = await getUserProfile(user.id);
         setUserRole(profile?.role || 'operator');
+        const { data: lista } = await supabase
+          .from('pode_apagar_ordem').select('user_id').eq('user_id', user.id);
+        setNaListaDeApagar(!!lista && lista.length > 0);
       }
     };
     fetchUserRole();
@@ -107,6 +113,8 @@ export default function MaintenanceOrdersPage() {
       toast.error(t('order_completed_error'));
     }
   };
+
+  const podeApagarOrdem = userRole === 'admin' || userEmail === 'efariaseng0@gmail.com' || naListaDeApagar;
 
   const handleDeleteOrder = async (orderId: string) => {
     setOrderToDelete(orderId);
@@ -445,7 +453,7 @@ export default function MaintenanceOrdersPage() {
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
-                      {(userRole === 'admin' || userEmail === 'efariaseng0@gmail.com') && (
+                      {podeApagarOrdem && (
                         <button 
                           onClick={() => handleDeleteOrder(order.id)}
                           className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
@@ -535,7 +543,7 @@ export default function MaintenanceOrdersPage() {
                     <MoreVertical className="w-4 h-4" />
                     {t('edit_order_costs')}
                   </button>
-                  {(userRole === 'admin' || userEmail === 'efariaseng0@gmail.com') && (
+                  {podeApagarOrdem && (
                     <button 
                       onClick={() => handleDeleteOrder(order.id)}
                       className="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg transition-colors"
